@@ -23,14 +23,12 @@ import { TypedEventFilter, TypedEvent, TypedListener } from "./commons";
 interface SongOrAlbumInterface extends ethers.utils.Interface {
   functions: {
     "DEFAULT_ADMIN_ROLE()": FunctionFragment;
-    "MINTER_ROLE()": FunctionFragment;
-    "OWNER_ROLE()": FunctionFragment;
     "_listings(uint256)": FunctionFragment;
     "_prices(uint256)": FunctionFragment;
     "balanceOf(address,uint256)": FunctionFragment;
     "balanceOfBatch(address[],uint256[])": FunctionFragment;
     "buy(uint256)": FunctionFragment;
-    "create(address,uint256,uint256,bytes,uint256)": FunctionFragment;
+    "create(address[],uint256,uint256,bytes,uint256)": FunctionFragment;
     "getRoleAdmin(bytes32)": FunctionFragment;
     "grantRole(bytes32,address)": FunctionFragment;
     "hasRole(bytes32,address)": FunctionFragment;
@@ -56,14 +54,6 @@ interface SongOrAlbumInterface extends ethers.utils.Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
-    functionFragment: "MINTER_ROLE",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "OWNER_ROLE",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
     functionFragment: "_listings",
     values: [BigNumberish]
   ): string;
@@ -82,7 +72,7 @@ interface SongOrAlbumInterface extends ethers.utils.Interface {
   encodeFunctionData(functionFragment: "buy", values: [BigNumberish]): string;
   encodeFunctionData(
     functionFragment: "create",
-    values: [string, BigNumberish, BigNumberish, BytesLike, BigNumberish]
+    values: [string[], BigNumberish, BigNumberish, BytesLike, BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "getRoleAdmin",
@@ -152,11 +142,6 @@ interface SongOrAlbumInterface extends ethers.utils.Interface {
     functionFragment: "DEFAULT_ADMIN_ROLE",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(
-    functionFragment: "MINTER_ROLE",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(functionFragment: "OWNER_ROLE", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "_listings", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "_prices", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "balanceOf", data: BytesLike): Result;
@@ -285,10 +270,6 @@ export class SongOrAlbum extends BaseContract {
   functions: {
     DEFAULT_ADMIN_ROLE(overrides?: CallOverrides): Promise<[string]>;
 
-    MINTER_ROLE(overrides?: CallOverrides): Promise<[string]>;
-
-    OWNER_ROLE(overrides?: CallOverrides): Promise<[string]>;
-
     _listings(
       arg0: BigNumberish,
       overrides?: CallOverrides
@@ -317,7 +298,7 @@ export class SongOrAlbum extends BaseContract {
     ): Promise<ContractTransaction>;
 
     create(
-      account: string,
+      accounts: string[],
       id: BigNumberish,
       amount: BigNumberish,
       data: BytesLike,
@@ -420,10 +401,6 @@ export class SongOrAlbum extends BaseContract {
 
   DEFAULT_ADMIN_ROLE(overrides?: CallOverrides): Promise<string>;
 
-  MINTER_ROLE(overrides?: CallOverrides): Promise<string>;
-
-  OWNER_ROLE(overrides?: CallOverrides): Promise<string>;
-
   _listings(arg0: BigNumberish, overrides?: CallOverrides): Promise<boolean>;
 
   _prices(arg0: BigNumberish, overrides?: CallOverrides): Promise<BigNumber>;
@@ -446,7 +423,7 @@ export class SongOrAlbum extends BaseContract {
   ): Promise<ContractTransaction>;
 
   create(
-    account: string,
+    accounts: string[],
     id: BigNumberish,
     amount: BigNumberish,
     data: BytesLike,
@@ -549,10 +526,6 @@ export class SongOrAlbum extends BaseContract {
   callStatic: {
     DEFAULT_ADMIN_ROLE(overrides?: CallOverrides): Promise<string>;
 
-    MINTER_ROLE(overrides?: CallOverrides): Promise<string>;
-
-    OWNER_ROLE(overrides?: CallOverrides): Promise<string>;
-
     _listings(arg0: BigNumberish, overrides?: CallOverrides): Promise<boolean>;
 
     _prices(arg0: BigNumberish, overrides?: CallOverrides): Promise<BigNumber>;
@@ -572,7 +545,7 @@ export class SongOrAlbum extends BaseContract {
     buy(tokenId: BigNumberish, overrides?: CallOverrides): Promise<void>;
 
     create(
-      account: string,
+      accounts: string[],
       id: BigNumberish,
       amount: BigNumberish,
       data: BytesLike,
@@ -756,10 +729,6 @@ export class SongOrAlbum extends BaseContract {
   estimateGas: {
     DEFAULT_ADMIN_ROLE(overrides?: CallOverrides): Promise<BigNumber>;
 
-    MINTER_ROLE(overrides?: CallOverrides): Promise<BigNumber>;
-
-    OWNER_ROLE(overrides?: CallOverrides): Promise<BigNumber>;
-
     _listings(
       arg0: BigNumberish,
       overrides?: CallOverrides
@@ -785,7 +754,7 @@ export class SongOrAlbum extends BaseContract {
     ): Promise<BigNumber>;
 
     create(
-      account: string,
+      accounts: string[],
       id: BigNumberish,
       amount: BigNumberish,
       data: BytesLike,
@@ -894,10 +863,6 @@ export class SongOrAlbum extends BaseContract {
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
-    MINTER_ROLE(overrides?: CallOverrides): Promise<PopulatedTransaction>;
-
-    OWNER_ROLE(overrides?: CallOverrides): Promise<PopulatedTransaction>;
-
     _listings(
       arg0: BigNumberish,
       overrides?: CallOverrides
@@ -926,7 +891,7 @@ export class SongOrAlbum extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     create(
-      account: string,
+      accounts: string[],
       id: BigNumberish,
       amount: BigNumberish,
       data: BytesLike,

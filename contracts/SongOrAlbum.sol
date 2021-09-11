@@ -12,14 +12,11 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 // private - can be accessed only from this contract
 contract SongOrAlbum is ERC1155, Ownable, AccessControl {
     mapping(uint256 => uint256) public _prices;
-    mapping(uint256 => address) private _tokenCreators;
+    mapping(uint256 => address[]) private _tokenCreators;
     mapping(uint256 => address) private _currentOwners;
     mapping(uint256 => bool) public _listings;
-    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
-    bytes32 public constant OWNER_ROLE = keccak256("OWNER_ROLE");
 
-    constructor (string memory uri_, address minter) ERC1155(uri_) {
-        _setupRole(MINTER_ROLE, minter);
+    constructor (string memory uri_) ERC1155(uri_) {
         console.log("Deploying a Greeter with uri:", uri_);
     }
 
@@ -42,16 +39,14 @@ contract SongOrAlbum is ERC1155, Ownable, AccessControl {
         return _prices[id];
     }
 
-    function create(address account, uint256 id, uint256 amount, bytes memory data, uint256 salePrice)
+    function create(address[] memory accounts, uint256 id, uint256 amount, bytes memory data, uint256 salePrice) onlyOwner
         public
     {
-		// Check that the calling account has the minter role
-        require(hasRole(MINTER_ROLE, msg.sender), "Caller is not a minter");
          _prices[id] = salePrice;
-         _tokenCreators[id] = msg.sender;
+         _tokenCreators[id] = accounts;
          _currentOwners[id] = msg.sender;
          _listings[id] = true;
-       _mint(account, id, amount, data);
+       _mint(msg.sender, id, amount, data);
     }
 
     function setApprovalToBuy(address toApprove, uint256 tokenId) public {
@@ -68,17 +63,28 @@ contract SongOrAlbum is ERC1155, Ownable, AccessControl {
         // Royalty
         // Assuming ether and not wei (10^18 ether)
         uint256 creatorRoyalty = (msg.value * 2) / 100;
-        sendTo(payable(_tokenCreators[tokenId]), creatorRoyalty);
-
+        // We know the length of the array
+        uint256 _tokenCreatorsLength = _tokenCreators[tokenId].length;
+        for (uint256 i=0; i<_tokenCreatorsLength; i++) {
+            console.log(i, creatorRoyalty);
+            console.log(i, address(this).balance);
+            sendTo(payable(_tokenCreators[tokenId][i]), creatorRoyalty);
+        }
+        
         // // Hashtune Cut
         address hashtuneAddress = address(0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199);
         uint256 platformCut = (msg.value * 2) / 100;
         sendTo(payable(hashtuneAddress), platformCut);
+        console.log(platformCut);
+        console.log(address(this).balance);
 
         // Current Owner
-        uint256 amount = msg.value - creatorRoyalty - platformCut;
+        uint256 amount = msg.value - (creatorRoyalty * _tokenCreatorsLength) - platformCut;
+        console.log(amount);
+        console.log(address(this).balance);
         sendTo(payable(_currentOwners[tokenId]), amount);
         bytes memory data;
+
 
         // Transfer token
         // Need to actually transfer the contract if using 721Upgradeable (?)
@@ -88,8 +94,8 @@ contract SongOrAlbum is ERC1155, Ownable, AccessControl {
     }
 
     function sendTo(address payable receiver, uint256 _amount) private {
-        require(receiver != address(0) && receiver != address(this));
-        require(_amount > 0 && _amount <= address(this).balance);
+        require(receiver != address(0) && receiver != address(this), "receiver is contract address owner");
+        require(_amount > 0 && _amount <= address(this).balance, "amount is less than contract balance");
         receiver.transfer(_amount);
     }
 

@@ -10,25 +10,20 @@ async function main() {
   const buyerAddress = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
   const hashtuneAddress = "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199";
   const buyerTwoAddress = "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC";
+  const thirdAddress = "0x90F79bf6EB2c4f870365E785982E1f101E93b906";
   // introduce multiple creators.
   const SongOrAlbum = await hre.ethers.getContractFactory("SongOrAlbum");
   const SOA: SongOrAlbum = (await SongOrAlbum.deploy(
-    "http://blank",
-    ownerAddress
+    "http://blank"
   )) as SongOrAlbum;
 
   await SOA.deployed();
 
-  // console.log("Greeter deployed to:", SOA.address);
-  // console.log("Greeter URI", await SOA.showURI(1));
-  // console.log("setting URI", await SOA.setURI("CHANGED"));
-  // console.log("Greeter URI", await SOA.showURI(1));
-  // console.log("Balance of", await SOA.balanceOf(ownerAddress, 1138));
   // Create token of id 1
   console.log(
     "Minting...",
     await SOA.create(
-      ownerAddress,
+      [ownerAddress, thirdAddress],
       1138,
       20,
       [],
@@ -37,10 +32,7 @@ async function main() {
   );
   let prov = ethers.provider;
   console.log("gas", await prov.getGasPrice());
-  // console.log("Balance of", await SOA.balanceOf(ownerAddress, 1138));
-  // console.log("Balance of", await SOA.balanceOf(ownerAddress, 1138));
-  // console.log("price of", await SOA.showSalePriceFor(1138));
-  // console.log("addy", SOA.buy);
+
   const balanceOwnerBefore = await (
     await prov.getBalance(ownerAddress)
   ).toString();
@@ -57,7 +49,7 @@ async function main() {
   // Buy the token from address 2
   const [owner, spender, holder] = await ethers.getSigners();
   await SOA.setApprovalToBuy(spender.address, 1138);
-  const buyer = await SOA.connect(spender);
+  const buyer = SOA.connect(spender);
   await buyer.buy(1138, {
     value: ethers.utils.parseEther("0.005"),
   });
@@ -66,18 +58,9 @@ async function main() {
   console.log("Balance of", await SOA.balanceOf(ownerAddress, 1138));
   console.log("Balance of", await SOA.balanceOf(buyerAddress, 1138));
   console.log("Balance of", await SOA.balanceOf(buyerTwoAddress, 1138));
-  // const balanceOwner = (await prov.getBalance(ownerAddress)).toString();
-  // console.log({ balanceOwner });
+
   const balanceBuyer = (await prov.getBalance(buyerAddress)).toString();
   console.log({ balanceBuyer });
-  // const balanceHashtuneAfter = (
-  //   await prov.getBalance(hashtuneAddress)
-  // ).toString();
-  // console.log({ balanceHashtuneAfter });
-
-  // Buy from address 3
-  // await contractOwner.setApprovalToBuy(buyerTwoAddress);
-  //console.log(await SOA.isApprovedForAll(owner.address, buyer.address));
 
   await buyer.setApprovalToBuy(holder.address, 1138);
   const balanceBuyerAfterApproval = (
@@ -89,8 +72,7 @@ async function main() {
   await buyerTwo.buy(1138, {
     value: ethers.utils.parseEther("0.005"),
   });
-  // const balanceOwnerAfter = (await prov.getBalance(ownerAddress)).toString();
-  // console.log({ balanceOwnerAfter });
+
   const balanceBuyerAfterPurchase = (
     await prov.getBalance(buyerAddress)
   ).toString();
@@ -104,6 +86,7 @@ async function main() {
   console.log("Balance of", await SOA.balanceOf(ownerAddress, 1138));
   console.log("Balance of", await SOA.balanceOf(buyerAddress, 1138));
   console.log("Balance of", await SOA.balanceOf(buyerTwoAddress, 1138));
+  console.log((await prov.getBalance(ownerAddress)).toString());
 }
 
 main()
