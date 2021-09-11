@@ -39,14 +39,14 @@ contract SongOrAlbum is ERC1155, Ownable, AccessControl {
         return _prices[id];
     }
 
-    function create(address[] memory accounts, uint256 id, uint256 amount, bytes memory data, uint256 salePrice) onlyOwner
+    function create(address[] memory accounts, uint256 id, bytes memory data, uint256 salePrice) onlyOwner
         public
     {
          _prices[id] = salePrice;
          _tokenCreators[id] = accounts;
          _currentOwners[id] = msg.sender;
          _listings[id] = true;
-       _mint(msg.sender, id, amount, data);
+       _mint(msg.sender, id, 1, data);
     }
 
     function setApprovalToBuy(address toApprove, uint256 tokenId) public {
@@ -63,7 +63,6 @@ contract SongOrAlbum is ERC1155, Ownable, AccessControl {
         // Royalty
         // Assuming ether and not wei (10^18 ether)
         uint256 creatorRoyalty = (msg.value * 2) / 100;
-        // We know the length of the array
         uint256 _tokenCreatorsLength = _tokenCreators[tokenId].length;
         for (uint256 i=0; i<_tokenCreatorsLength; i++) {
             console.log(i, creatorRoyalty);
@@ -71,7 +70,7 @@ contract SongOrAlbum is ERC1155, Ownable, AccessControl {
             sendTo(payable(_tokenCreators[tokenId][i]), creatorRoyalty);
         }
         
-        // // Hashtune Cut
+        // Hashtune Cut
         address hashtuneAddress = address(0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199);
         uint256 platformCut = (msg.value * 2) / 100;
         sendTo(payable(hashtuneAddress), platformCut);
@@ -85,12 +84,10 @@ contract SongOrAlbum is ERC1155, Ownable, AccessControl {
         sendTo(payable(_currentOwners[tokenId]), amount);
         bytes memory data;
 
-
         // Transfer token
         // Need to actually transfer the contract if using 721Upgradeable (?)
         safeTransferFrom(_currentOwners[tokenId], msg.sender, tokenId, 1, data);
         _currentOwners[tokenId] = msg.sender;
-        //_listings[tokenId] = false; // only makes sense if there's one token
     }
 
     function sendTo(address payable receiver, uint256 _amount) private {
@@ -98,18 +95,18 @@ contract SongOrAlbum is ERC1155, Ownable, AccessControl {
         require(_amount > 0 && _amount <= address(this).balance, "amount is less than contract balance");
         receiver.transfer(_amount);
     }
+    // set listed? This will cost gas to set but prevents a sale from happening without current owners consent?
+    function getCurrentOwner(uint256 tokenId) view public returns (address) {
+        return _currentOwners[tokenId];
+    }
 
     // Set current price and buy could have a race condition, make sure you 
-    // cannot purchase a token while updating prices by pausing contract first then unpausing
-    // function setCurrentPrice(uint256 _currentPrice, uint256 tokenId) public  {
-    // require msg.send = _currentOwner[tokenId]
-    //     require(_currentPrice > 0);
-    //     currentPrice = _currentPrice;
-    // }
-
-    // TODO separate the sales functionality into a separate contract
-    // When will an ERC contract ownership ever be necessary? the idea is the artist owns it
-
+    // TODO: disable purchase while updating prices by pausing contract first then unpausing
+    function setCurrentPrice(uint256 newPrice, uint256 tokenId) public  {
+        require(msg.sender == _currentOwners[tokenId], "cannot set the price for a token you don't currently own");
+        require(newPrice > 0, "cannot set the new price of the token to zero");
+        _prices[tokenId] = newPrice;
+    }
 }
 
 
