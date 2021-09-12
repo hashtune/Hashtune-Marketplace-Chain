@@ -68,7 +68,7 @@ async function main() {
   console.log("Balance of", await SOA.balanceOf(buyerTwoAddress, 1138));
 
   // Log account balances after transfer 1
-  console.log("balanceBuyer", await prov.getBalance(buyerAddress).toString());
+  console.log("balanceBuyer", (await prov.getBalance(buyerAddress)).toString());
 
   // Decrease the price to 0.004 ether
   await buyer.setCurrentPrice(ethers.utils.parseEther("0.004"), 1138);

@@ -17,7 +17,7 @@ contract SongOrAlbum is ERC1155, Ownable, AccessControl {
     mapping(uint256 => bool) public _listings;
 
     constructor (string memory uri_) ERC1155(uri_) {
-        console.log("Deploying a Greeter with uri:", uri_);
+        console.log("Deploying a Song or Album Contract with uri:", uri_);
     }
 
     // Not sure if this is the correct override
@@ -49,6 +49,7 @@ contract SongOrAlbum is ERC1155, Ownable, AccessControl {
        _mint(msg.sender, id, 1, data);
     }
 
+    // Might need to override setApprovalForAll aswell  
     function setApprovalToBuy(address toApprove, uint256 tokenId) public {
         require(_currentOwners[tokenId] == msg.sender, "cannot set approval if not token owner");
         return setApprovalForAll(toApprove, true);
@@ -61,12 +62,12 @@ contract SongOrAlbum is ERC1155, Ownable, AccessControl {
         require(msg.sender != address(0) && msg.sender != address(this), "cannot buy your own token");
 
         // Royalty
+        // TODO customize the royalty for each feature
         // Assuming ether and not wei (10^18 ether)
+        // Need to restrict the number of features
         uint256 creatorRoyalty = (msg.value * 2) / 100;
         uint256 _tokenCreatorsLength = _tokenCreators[tokenId].length;
         for (uint256 i=0; i<_tokenCreatorsLength; i++) {
-            console.log(i, creatorRoyalty);
-            console.log(i, address(this).balance);
             sendTo(payable(_tokenCreators[tokenId][i]), creatorRoyalty);
         }
         
@@ -74,13 +75,9 @@ contract SongOrAlbum is ERC1155, Ownable, AccessControl {
         address hashtuneAddress = address(0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199);
         uint256 platformCut = (msg.value * 2) / 100;
         sendTo(payable(hashtuneAddress), platformCut);
-        console.log(platformCut);
-        console.log(address(this).balance);
 
         // Current Owner
         uint256 amount = msg.value - (creatorRoyalty * _tokenCreatorsLength) - platformCut;
-        console.log(amount);
-        console.log(address(this).balance);
         sendTo(payable(_currentOwners[tokenId]), amount);
         bytes memory data;
 
