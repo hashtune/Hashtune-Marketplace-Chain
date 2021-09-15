@@ -1,7 +1,7 @@
 import hre from "hardhat";
 import { ethers } from "hardhat";
-import { SongOrAlbum } from "../src/types/SongOrAlbum";
-import "@nomiclabs/hardhat-ethers"; // Adds ethers property object to hardhat run time environment
+import { SongOrAlbumNFT } from "../src/types/SongOrAlbumNFT";
+import "@nomiclabs/hardhat-ethers"; // Adds ethers property object to hardhat run time environment. Must be loaded last.
 
 async function main() {
   // Addresses
@@ -12,10 +12,10 @@ async function main() {
   const thirdAddress = "0x90F79bf6EB2c4f870365E785982E1f101E93b906";
 
   // Deploy
-  const SongOrAlbum = await hre.ethers.getContractFactory("SongOrAlbum");
-  const SOA: SongOrAlbum = (await SongOrAlbum.deploy(
+  const SongOrAlbum = await hre.ethers.getContractFactory("SongOrAlbumNFT");
+  const SOA: SongOrAlbumNFT = (await SongOrAlbum.deploy(
     "http://blank"
-  )) as SongOrAlbum;
+  )) as SongOrAlbumNFT;
   await SOA.deployed();
 
   // Mint token with ID 1138
@@ -30,7 +30,7 @@ async function main() {
   );
 
   // Gas
-  let prov = ethers.provider;
+  const prov = ethers.provider;
   console.log("gas", await prov.getGasPrice());
 
   // Log account balances before

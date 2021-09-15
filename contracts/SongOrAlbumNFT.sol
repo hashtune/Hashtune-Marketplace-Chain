@@ -11,7 +11,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 // internal - only this contract and contracts deriving from it can access
 // private - can be accessed only from this contract
 // TODO add event emissions
-contract SongOrAlbum is ERC1155, Ownable, AccessControl {
+contract SongOrAlbumNFT is ERC1155, Ownable, AccessControl {
     mapping(uint256 => uint256) public _prices;
     mapping(uint256 => address[]) private _tokenCreators;
     mapping(uint256 => address) private _currentOwners;

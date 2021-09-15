@@ -1,6 +1,7 @@
 import { providers, Signer } from "ethers";
-import { SongOrAlbum } from "~/src/types/SongOrAlbum";
-import { Context } from "./sample-test";
+import { SongOrAlbumNFT } from "~/src/types/SongOrAlbumNFT";
+
+import { Context } from "./songOrAlbumNFT.spec";
 
 /**
  *
@@ -12,6 +13,6 @@ import { Context } from "./sample-test";
 export function connectAsUser(
   address: string | Signer | providers.Provider,
   context: Context
-): SongOrAlbum {
+): SongOrAlbumNFT {
   return context.soa.connect(address);
 }

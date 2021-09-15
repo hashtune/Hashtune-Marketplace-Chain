@@ -1,11 +1,11 @@
-import { task, HardhatUserConfig } from "hardhat/config";
-import "@typechain/hardhat";
-import "@nomiclabs/hardhat-waffle";
 import "hardhat-watcher";
+import { HardhatUserConfig, task } from "hardhat/config";
+import "tsconfig-paths/register";
 import "@nomiclabs/hardhat-ethers";
+import "@nomiclabs/hardhat-waffle";
+import "@typechain/hardhat";
 
 // This adds support for typescript paths mappings
-import "tsconfig-paths/register";
 
 const config: HardhatUserConfig = {
   // Your type-safe config goes here

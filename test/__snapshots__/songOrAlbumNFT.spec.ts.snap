@@ -1,5 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`SongOrAlbumNFT Contract Owner can change the price of the token 1`] = `"0x6a7e1154ce2b57e34d65cae86d2eeb9a2a997958833012b5864a88ce350f101b"`;
+
 exports[`SongOrAlbumNFT Contract Owner can change the single URI of the contracts tokens 1`] = `"foo"`;
 
 exports[`SongOrAlbumNFT Contract Owner can sell the token if they own it 1`] = `
@@ -12,7 +14,6 @@ Object {
 exports[`SongOrAlbumNFT Contract Owner cannot buy the token with an incorrect amount 1`] = `[Error: VM Exception while processing transaction: reverted with reason string 'incorrect amount sent']`;
 
 exports[`SongOrAlbumNFT Contract Owner cannot change the price of the token if they no longer own it 1`] = `[Error: VM Exception while processing transaction: reverted with reason string 'cannot set the price for a token you don't currently own']`;
-
 
 exports[`SongOrAlbumNFT Token Creator can transfer tokens in during a sale 1`] = `"0x01"`;
 

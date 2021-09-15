@@ -4,10 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "npx tsc index.ts",
-    "test": "echo \"Error: no test specified\" && exit 1",
     "dev:start": "ts-node-dev --watch -- ./scripts/*",
-    "lint:fix": "prettier --write 'src/**/*.{js,ts}' 'test/**/*.{js,ts}' && tslint --fix --config tslint.json --project tsconfig.json",
     "lint": "tslint --config tslint.json --project tsconfig.json",
     "transpile": "tsc -w"
   },

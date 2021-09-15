@@ -1,44 +1,47 @@
-import hre from "hardhat";
-import { ethers } from "hardhat";
-import { SongOrAlbum } from "../src/types/SongOrAlbum";
 import "@nomiclabs/hardhat-ethers"; // Adds ethers property object to hardhat run time environment
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { connectAsUser } from "./utils";
-import { jestSnapshotPlugin } from "mocha-chai-jest-snapshot";
 import chai from "chai";
+import hre from "hardhat";
+import { ethers } from "hardhat";
+import { jestSnapshotPlugin } from "mocha-chai-jest-snapshot";
+
+import { SongOrAlbumNFT } from "../src/types/SongOrAlbumNFT";
+
+import { connectAsUser } from "./utils";
 chai.use(jestSnapshotPlugin());
 const { expect } = chai;
 
-export type Context = {
-  soa: SongOrAlbum;
+export interface Context {
+  soa: SongOrAlbumNFT;
   users: { [key: string]: SignerWithAddress };
-};
+}
 
 describe("SongOrAlbumNFT", function () {
+  // TODO move this to a separate setup file
   // Deploy contract
-  let hashtuneAddress = "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199"; // this is the last test account provided by hardhat
+  const hashtuneAddress = "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199"; // this is the last test account provided by hardhat
   let context: Context;
-  let tokenId = 1111;
-  let prov = ethers.provider;
+  const tokenId = 1111;
+  const prov = ethers.provider;
   // This is super cheap, this is a 17 USD token if 1 Ether is worth 3.4K USD
-  let tokenPrice = ethers.utils.parseEther("0.005");
+  const tokenPrice = ethers.utils.parseEther("0.005");
   this.beforeEach(async () => {
-    let [one, two, three, four, five, six] = await ethers.getSigners();
-    const SongOrAlbum = await hre.ethers.getContractFactory("SongOrAlbum");
-    const SOA: SongOrAlbum = (await SongOrAlbum.deploy(
+    const [one, two, three, four, five, six] = await ethers.getSigners();
+    const SongOrAlbum = await hre.ethers.getContractFactory("SongOrAlbumNFT");
+    const SOA: SongOrAlbumNFT = (await SongOrAlbum.deploy(
       "http://blank"
-    )) as SongOrAlbum;
+    )) as SongOrAlbumNFT;
     // Deploy the contract
     await SOA.deployed();
     context = {
       soa: SOA,
       users: {
-        one: one, // contract owner and token creator
-        two: two,
-        three: three, // token feature
-        four: four,
-        five: five,
-        six: six,
+        one, // contract owner and token creator
+        two,
+        three, // token feature
+        four,
+        five,
+        six,
       },
     };
     // Create a single token
@@ -51,15 +54,15 @@ describe("SongOrAlbumNFT", function () {
     if (!result.hash) {
       throw new Error("Problem setting up tests");
     }
-    let eventFilter = context.soa.filters.TransferSingle();
-    let events = await context.soa.queryFilter(eventFilter);
+    const eventFilter = context.soa.filters.TransferSingle();
+    const events = await context.soa.queryFilter(eventFilter);
     return SOA;
   });
   describe("Contract Owner", function () {
     // User 1
     it("can change the price of the token", async function () {
-      let result = await context.soa.setCurrentPrice(tokenPrice, tokenId);
-      expect(result.hash).to.be.a("string");
+      const result = await context.soa.setCurrentPrice(tokenPrice, tokenId);
+      expect(result.hash).toMatchSnapshot();
     });
     it("can sell the token if they own it", async function () {
       await context.soa.setApprovalToBuy(context.users.two.address, tokenId);
@@ -161,26 +164,26 @@ describe("SongOrAlbumNFT", function () {
     it("can transfer funds in during a sale", async () => {
       await context.soa.setApprovalToBuy(context.users.two.address, tokenId);
       const asTwo = connectAsUser(context.users.two, context);
-      let ownerBefore = await prov.getBalance(context.users.one.address);
+      const ownerBefore = await prov.getBalance(context.users.one.address);
       await asTwo.buy(tokenId, {
         value: tokenPrice,
       });
       // 2 percent
       const royalty = tokenPrice.mul(2).div(100);
-      let ownerAfter = await prov.getBalance(context.users.one.address);
+      const ownerAfter = await prov.getBalance(context.users.one.address);
       const amount = tokenPrice.sub(royalty).sub(royalty); // Owner is also creator
       expect(ownerAfter).to.be.equal(ownerBefore.add(amount));
     });
     it("can transfer funds out during a sale", async () => {
       await context.soa.setApprovalToBuy(context.users.two.address, tokenId);
       const asTwo = connectAsUser(context.users.two, context);
-      let buyerBefore = await prov.getBalance(context.users.two.address);
+      const buyerBefore = await prov.getBalance(context.users.two.address);
       const transaction = await asTwo.buy(tokenId, {
         value: tokenPrice,
       });
       const receipt = await prov.getTransactionReceipt(transaction.hash);
       // 2 percent
-      let buyerAfter = await prov.getBalance(context.users.two.address);
+      const buyerAfter = await prov.getBalance(context.users.two.address);
       expect(buyerAfter).to.be.equal(
         buyerBefore
           .sub(tokenPrice)
@@ -190,14 +193,14 @@ describe("SongOrAlbumNFT", function () {
     it("can transfer royalties during a sale", async () => {
       await context.soa.setApprovalToBuy(context.users.two.address, tokenId);
       const asTwo = connectAsUser(context.users.two, context);
-      let hashtuneBeforeOne = await prov.getBalance(hashtuneAddress);
-      let featureBeforeOne = await prov.getBalance(context.users.three.address);
+      const hashtuneBeforeOne = await prov.getBalance(hashtuneAddress);
+      const featureBeforeOne = await prov.getBalance(context.users.three.address);
       await asTwo.buy(tokenId, {
         value: tokenPrice,
       });
       const royalty = tokenPrice.mul(2).div(100);
-      let hashtuneAfterOne = await prov.getBalance(hashtuneAddress);
-      let featureAfterOne = await prov.getBalance(context.users.three.address);
+      const hashtuneAfterOne = await prov.getBalance(hashtuneAddress);
+      const featureAfterOne = await prov.getBalance(context.users.three.address);
       expect(hashtuneAfterOne).to.be.equal(hashtuneBeforeOne.add(royalty));
       expect(featureAfterOne).to.be.equal(featureBeforeOne.add(royalty));
     });
