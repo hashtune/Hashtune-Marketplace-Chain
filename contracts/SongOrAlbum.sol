@@ -10,6 +10,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 // external - Cannot be accessed internally, only externally
 // internal - only this contract and contracts deriving from it can access
 // private - can be accessed only from this contract
+// TODO add event emissions
 contract SongOrAlbum is ERC1155, Ownable, AccessControl {
     mapping(uint256 => uint256) public _prices;
     mapping(uint256 => address[]) private _tokenCreators;
@@ -77,6 +78,8 @@ contract SongOrAlbum is ERC1155, Ownable, AccessControl {
         sendTo(payable(hashtuneAddress), platformCut);
 
         // Current Owner
+        // On the first transaction the current owner is the first creator
+        // and thus does not receive a royalty
         uint256 amount = msg.value - (creatorRoyalty * _tokenCreatorsLength) - platformCut;
         sendTo(payable(_currentOwners[tokenId]), amount);
         bytes memory data;
@@ -92,6 +95,7 @@ contract SongOrAlbum is ERC1155, Ownable, AccessControl {
         require(_amount > 0 && _amount <= address(this).balance, "amount is less than contract balance");
         receiver.transfer(_amount);
     }
+    
     // set listed? This will cost gas to set but prevents a sale from happening without current owners consent?
     function getCurrentOwner(uint256 tokenId) view public returns (address) {
         return _currentOwners[tokenId];
