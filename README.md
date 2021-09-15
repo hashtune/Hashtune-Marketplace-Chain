@@ -11,3 +11,5 @@ In another terminal window:
 ## Testing
 
 `npx hardhat test`
+
+`UPDATE_SNAPSHOT=1 npx hardhat test` to update snapshots
