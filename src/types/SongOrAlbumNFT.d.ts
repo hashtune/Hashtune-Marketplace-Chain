@@ -223,20 +223,30 @@ interface SongOrAlbumNFTInterface extends ethers.utils.Interface {
 
   events: {
     "ApprovalForAll(address,address,bool)": EventFragment;
+    "NewPrice(address,uint256,uint256)": EventFragment;
+    "NewURI(address,string)": EventFragment;
     "OwnershipTransferred(address,address)": EventFragment;
+    "PayoutOccurred(address,uint256)": EventFragment;
     "RoleAdminChanged(bytes32,bytes32,bytes32)": EventFragment;
     "RoleGranted(bytes32,address,address)": EventFragment;
     "RoleRevoked(bytes32,address,address)": EventFragment;
+    "TokenCreated(address,uint256,address[])": EventFragment;
+    "TokenPurchased(address,uint256)": EventFragment;
     "TransferBatch(address,address,address,uint256[],uint256[])": EventFragment;
     "TransferSingle(address,address,address,uint256,uint256)": EventFragment;
     "URI(string,uint256)": EventFragment;
   };
 
   getEvent(nameOrSignatureOrTopic: "ApprovalForAll"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "NewPrice"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "NewURI"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "OwnershipTransferred"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "PayoutOccurred"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "RoleAdminChanged"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "RoleGranted"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "RoleRevoked"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "TokenCreated"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "TokenPurchased"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "TransferBatch"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "TransferSingle"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "URI"): EventFragment;
@@ -699,6 +709,23 @@ export class SongOrAlbumNFT extends BaseContract {
       { account: string; operator: string; approved: boolean }
     >;
 
+    NewPrice(
+      setBy?: null,
+      newPrice?: null,
+      tokenId?: null
+    ): TypedEventFilter<
+      [string, BigNumber, BigNumber],
+      { setBy: string; newPrice: BigNumber; tokenId: BigNumber }
+    >;
+
+    NewURI(
+      setBy?: null,
+      newAddress?: null
+    ): TypedEventFilter<
+      [string, string],
+      { setBy: string; newAddress: string }
+    >;
+
     OwnershipTransferred(
       previousOwner?: string | null,
       newOwner?: string | null
@@ -706,6 +733,11 @@ export class SongOrAlbumNFT extends BaseContract {
       [string, string],
       { previousOwner: string; newOwner: string }
     >;
+
+    PayoutOccurred(
+      to?: null,
+      amount?: null
+    ): TypedEventFilter<[string, BigNumber], { to: string; amount: BigNumber }>;
 
     RoleAdminChanged(
       role?: BytesLike | null,
@@ -732,6 +764,23 @@ export class SongOrAlbumNFT extends BaseContract {
     ): TypedEventFilter<
       [string, string, string],
       { role: string; account: string; sender: string }
+    >;
+
+    TokenCreated(
+      by?: null,
+      tokenId?: null,
+      creators?: null
+    ): TypedEventFilter<
+      [string, BigNumber, string[]],
+      { by: string; tokenId: BigNumber; creators: string[] }
+    >;
+
+    TokenPurchased(
+      by?: null,
+      tokenId?: null
+    ): TypedEventFilter<
+      [string, BigNumber],
+      { by: string; tokenId: BigNumber }
     >;
 
     TransferBatch(

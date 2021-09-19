@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`SongOrAlbumNFT Contract Owner can change the price of the token 1`] = `"0x6a7e1154ce2b57e34d65cae86d2eeb9a2a997958833012b5864a88ce350f101b"`;
+exports[`SongOrAlbumNFT Contract Owner can change the price of the token 1`] = `1`;
 
 exports[`SongOrAlbumNFT Contract Owner can change the single URI of the contracts tokens 1`] = `"foo"`;
 

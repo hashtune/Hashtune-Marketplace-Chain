@@ -2,6 +2,7 @@ import hre from "hardhat";
 import { ethers } from "hardhat";
 import { SongOrAlbumNFT } from "../src/types/SongOrAlbumNFT";
 import "@nomiclabs/hardhat-ethers"; // Adds ethers property object to hardhat run time environment. Must be loaded last.
+import { utils } from "ethers";
 
 async function main() {
   // Addresses
@@ -18,6 +19,42 @@ async function main() {
   )) as SongOrAlbumNFT;
   await SOA.deployed();
 
+  // Gas
+  const prov = ethers.provider;
+
+  // Events
+  SOA.on("TokenCreated", (by, tokenId, creators) => {
+    console.log(
+      "token created!",
+      "by:",
+      by,
+      "tokenId:",
+      tokenId,
+      "createors:",
+      creators
+    );
+  });
+
+  SOA.on("TokenPurchased", (by, tokenId) => {
+    console.log("Token Purchased!", "by:", by, "tokenId:", tokenId);
+  });
+
+  SOA.on("PayoutOccurred", (to, amount) => {
+    console.log("Payout Occured!", "to:", to, "amount:", amount);
+  });
+
+  SOA.on("NewPrice", (setBy, newPrice, tokenId) => {
+    console.log(
+      "New price set for token!",
+      "setBy:",
+      setBy,
+      "newPrice:",
+      newPrice,
+      "tokenId:",
+      tokenId
+    );
+  });
+
   // Mint token with ID 1138
   console.log(
     "Minting...",
@@ -29,8 +66,7 @@ async function main() {
     )
   );
 
-  // Gas
-  const prov = ethers.provider;
+  console.log({ prov });
   console.log("gas", await prov.getGasPrice());
 
   // Log account balances before
@@ -98,9 +134,9 @@ async function main() {
   console.log("Balance of", await SOA.balanceOf(buyerTwoAddress, 1138));
 }
 
-main()
-  .then(() => process.exit(0))
-  .catch((error) => {
-    console.error(error);
-    process.exit(1);
-  });
+main();
+// .then(() => process.exit(0))
+// .catch((error) => {
+//   console.error(error);
+//   process.exit(1);
+// });

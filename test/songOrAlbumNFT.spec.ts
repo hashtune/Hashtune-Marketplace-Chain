@@ -62,7 +62,7 @@ describe("SongOrAlbumNFT", function () {
     // User 1
     it("can change the price of the token", async function () {
       const result = await context.soa.setCurrentPrice(tokenPrice, tokenId);
-      expect(result.hash).toMatchSnapshot();
+      expect(result.v).toMatchSnapshot();
     });
     it("can sell the token if they own it", async function () {
       await context.soa.setApprovalToBuy(context.users.two.address, tokenId);
@@ -194,13 +194,17 @@ describe("SongOrAlbumNFT", function () {
       await context.soa.setApprovalToBuy(context.users.two.address, tokenId);
       const asTwo = connectAsUser(context.users.two, context);
       const hashtuneBeforeOne = await prov.getBalance(hashtuneAddress);
-      const featureBeforeOne = await prov.getBalance(context.users.three.address);
+      const featureBeforeOne = await prov.getBalance(
+        context.users.three.address
+      );
       await asTwo.buy(tokenId, {
         value: tokenPrice,
       });
       const royalty = tokenPrice.mul(2).div(100);
       const hashtuneAfterOne = await prov.getBalance(hashtuneAddress);
-      const featureAfterOne = await prov.getBalance(context.users.three.address);
+      const featureAfterOne = await prov.getBalance(
+        context.users.three.address
+      );
       expect(hashtuneAfterOne).to.be.equal(hashtuneBeforeOne.add(royalty));
       expect(featureAfterOne).to.be.equal(featureBeforeOne.add(royalty));
     });

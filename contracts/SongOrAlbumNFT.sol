@@ -17,17 +17,24 @@ contract SongOrAlbumNFT is ERC1155, Ownable, AccessControl {
     mapping(uint256 => address) private _currentOwners;
     mapping(uint256 => bool) public _listings;
 
+    // Custom Events
+    event NewURI(address setBy, string newAddress);
+    event TokenCreated(address by, uint256 tokenId, address[] creators);
+    event TokenPurchased(address by, uint256 tokenId);
+    event PayoutOccurred(address to, uint256 amount);
+    event NewPrice(address setBy, uint256 newPrice, uint256 tokenId);
+    
     constructor (string memory uri_) ERC1155(uri_) {
         console.log("Deploying a Song or Album Contract with uri:", uri_);
     }
 
-    // Not sure if this is the correct override
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC1155, AccessControl) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
     
     // Example of such a URI: https://token-cdn-domain/{id}.json would be replaced with https://token-cdn-domain/000000000000000000000000000000000000000000000000000000000004cce0.json if the client is referring to token ID 314592/0x4CCE0.
     function setURI(string memory newuri) public onlyOwner {
+        emit NewURI(msg.sender, newuri);
         _setURI(newuri);
     }
 
@@ -43,20 +50,24 @@ contract SongOrAlbumNFT is ERC1155, Ownable, AccessControl {
     function create(address[] memory accounts, uint256 id, bytes memory data, uint256 salePrice) onlyOwner
         public
     {
-         _prices[id] = salePrice;
-         _tokenCreators[id] = accounts;
-         _currentOwners[id] = msg.sender;
-         _listings[id] = true;
-       _mint(msg.sender, id, 1, data);
+        // Emits a TransferSingle 
+        emit TokenCreated(msg.sender, id, accounts);
+        _prices[id] = salePrice;
+        _tokenCreators[id] = accounts;
+        _currentOwners[id] = msg.sender;
+        _listings[id] = true;
+        _mint(msg.sender, id, 1, data);
     }
 
-    // Might need to override setApprovalForAll aswell  
     function setApprovalToBuy(address toApprove, uint256 tokenId) public {
+        // Emits setApprovalForAll
         require(_currentOwners[tokenId] == msg.sender, "cannot set approval if not token owner");
         return setApprovalForAll(toApprove, true);
     }
   
-    function buy(uint256 tokenId ) public payable {
+    function buy(uint256 tokenId) public payable {
+        // Emits a TransferSingle 
+        emit TokenPurchased(msg.sender, tokenId);
         uint256 price = showSalePriceFor(tokenId);
         require(msg.value == price, "incorrect amount sent");
         //require(_listings[tokenId] == true, "art piece not for sale"); only makes sense if theres one
@@ -91,6 +102,8 @@ contract SongOrAlbumNFT is ERC1155, Ownable, AccessControl {
     }
 
     function sendTo(address payable receiver, uint256 _amount) private {
+        // Not sure if this emits a default transfer event?
+        emit PayoutOccurred(receiver, _amount);
         require(receiver != address(0) && receiver != address(this), "receiver is contract address owner");
         require(_amount > 0 && _amount <= address(this).balance, "amount is less than contract balance");
         receiver.transfer(_amount);
@@ -104,6 +117,7 @@ contract SongOrAlbumNFT is ERC1155, Ownable, AccessControl {
     // Set current price and buy could have a race condition, make sure you 
     // TODO: disable purchase while updating prices by pausing contract first then unpausing
     function setCurrentPrice(uint256 newPrice, uint256 tokenId) public  {
+        emit NewPrice(msg.sender, newPrice, tokenId);
         require(msg.sender == _currentOwners[tokenId], "cannot set the price for a token you don't currently own");
         require(newPrice > 0, "cannot set the new price of the token to zero");
         _prices[tokenId] = newPrice;
