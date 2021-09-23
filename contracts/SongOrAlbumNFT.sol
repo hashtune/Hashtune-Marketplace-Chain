@@ -12,10 +12,24 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 // private - can be accessed only from this contract
 // TODO add event emissions
 contract SongOrAlbumNFT is ERC1155, Ownable, AccessControl {
+
+    //TODO: convert into a seperate Library to save storage
+    struct auctionInfo {
+        uint256 currentHigh;
+        address currentHighBider;
+        uint256 endTime;
+        uint256 targetPrice;
+        bool isFinalized;
+    }
+    
+    //TODO: refactor to use different structure in order to save some storage
     mapping(uint256 => uint256) public _prices;
     mapping(uint256 => address[]) private _tokenCreators;
     mapping(uint256 => address) private _currentOwners;
     mapping(uint256 => bool) public _listings;
+    mapping(uint256 => mapping(uint256 => auctionInfo)) public bids;
+    mapping(address => mapping(uint256 => mapping(uint256 => uint256))) public bidMoneyPool;
+    mapping(uint256 => uint256) public totalAuctions; // alternative to mapping array of struct 
 
     // Custom Events
     event NewURI(address setBy, string newAddress);
@@ -23,6 +37,10 @@ contract SongOrAlbumNFT is ERC1155, Ownable, AccessControl {
     event TokenPurchased(address by, uint256 tokenId);
     event PayoutOccurred(address to, uint256 amount);
     event NewPrice(address setBy, uint256 newPrice, uint256 tokenId);
+    event NewBid(address by, uint256 tokenId, uint256 amount);
+    event NewAuction(uint256 tokenId, uint256 auctionNum, uint256 targetPrice, uint256 endTime);
+    event EndAuction(uint256 tokenId, uint256 auctionNum, address newOwner, uint256 soldFor);
+    event WithdrewMoney(address receiver, uint256 withdrawnAmount);
     
     constructor (string memory uri_) ERC1155(uri_) {
         console.log("Deploying a Song or Album Contract with uri:", uri_);
@@ -122,6 +140,106 @@ contract SongOrAlbumNFT is ERC1155, Ownable, AccessControl {
         require(newPrice > 0, "cannot set the new price of the token to zero");
         _prices[tokenId] = newPrice;
     }
+
+    //Start the Auction on limeted time based model or without time contraint
+    // TODO: implementing the limited time based auction model
+    function startAuction(uint256 tokenId, uint256 targetPrice, uint256 duration) public {
+        address currentOwner = _currentOwners[tokenId];
+        uint256 previousAuctions = totalAuctions[tokenId];
+        bool wasFinalized = bids[tokenId][previousAuctions].isFinalized;
+        if(previousAuctions > 0) {
+            require(wasFinalized, "previous auction is still on going.");
+        }
+        uint256 endTime = block.timestamp + duration;
+        require(currentOwner == msg.sender, "can't start the auction of NFT you don't own");
+        uint256 newAuctionNum = totalAuctions[tokenId] += 1;
+        if(duration > 0) {
+            require(endTime > block.timestamp, "auction endtime should be set to future");
+            bids[tokenId][newAuctionNum].endTime = endTime;
+        } else {
+            bids[tokenId][newAuctionNum].endTime = 0;
+        }
+        bids[tokenId][newAuctionNum].targetPrice = targetPrice;
+        bids[tokenId][newAuctionNum].currentHigh = 0;
+        bids[tokenId][newAuctionNum].isFinalized = false;
+        emit NewAuction(tokenId, newAuctionNum, bids[tokenId][newAuctionNum].targetPrice, endTime);
+    }
+
+    //TODO: implement safe check for whether NFT is up for auction
+    function placeBid(uint256 tokenId) public payable {
+        uint256 currentAuctionNum = totalAuctions[tokenId];
+        uint256 newBidSum = msg.value + bidMoneyPool[msg.sender][tokenId][currentAuctionNum];
+        uint256 endTime = bids[tokenId][currentAuctionNum].endTime;
+        bool isEnded = bids[tokenId][currentAuctionNum].isFinalized;
+        require(!isEnded, "auction is closed for this NFT");
+        if(endTime == 0 || endTime < block.timestamp) {
+            require(msg.value > 0, "bid amount should be greator than 0");
+            require( newBidSum > bids[tokenId][currentAuctionNum].currentHigh, "bid amount should be greator than the current highest");
+            bidMoneyPool[msg.sender][tokenId][currentAuctionNum] += msg.value;
+            bids[tokenId][currentAuctionNum].currentHigh = newBidSum;
+            bids[tokenId][currentAuctionNum].currentHighBider = msg.sender;
+        } else {
+            revert("auction is closed for this NFT");
+        }
+        emit NewBid(msg.sender, tokenId, msg.value);
+    }
+
+    //TODO: implement safe check for whether NFT is up for auction, spliting the royalties, transfering the money
+    function endAuction(uint256 tokenId) public {
+        uint256 currentAuctionNum = totalAuctions[tokenId];
+        require(_currentOwners[tokenId] == msg.sender, "only owner of the NFT can end the auction");
+        if(bids[tokenId][currentAuctionNum].endTime == 0) {
+            bids[tokenId][currentAuctionNum].isFinalized = true;
+            bytes memory data;
+            safeTransferFrom(_currentOwners[tokenId], bids[tokenId][currentAuctionNum].currentHighBider, tokenId, 1, data);
+        } else {
+            require(bids[tokenId][currentAuctionNum].endTime < block.timestamp, "can`t end ongoing time based auction");
+            bids[tokenId][currentAuctionNum].isFinalized = true;
+            bytes memory data;
+            safeTransferFrom(_currentOwners[tokenId], bids[tokenId][currentAuctionNum].currentHighBider, tokenId, 1, data);
+        }
+        emit EndAuction(tokenId, currentAuctionNum, bids[tokenId][currentAuctionNum].currentHighBider, bids[tokenId][currentAuctionNum].currentHigh);
+    }
+
+    //lets you withdraw your bid money when the auction is ended.
+    //TODO: implement withdraw all the previous money in case the current auction is ongoing
+    function withdrawBidMoney(uint tokenId) public {
+        uint256 currentAuctionNum = totalAuctions[tokenId];
+        uint256 currentAuctionBalance = bidMoneyPool[msg.sender][tokenId][currentAuctionNum];
+        bool isFinalized = bids[tokenId][currentAuctionNum].isFinalized;
+        
+        uint256 balance;
+        if(currentAuctionBalance == 0) {
+            balance = bidMoneyPoolCalculator(tokenId, currentAuctionNum < 2 ? 0 : currentAuctionNum - 1 , msg.sender);
+            if(balance > 0) {
+                if(!payable(msg.sender).send(balance)) {
+                    revert("withdrawal unsuccessful");
+                }
+            } else {
+                revert("you don't have any money in the bidding pool");
+            }
+        } else {
+            require(isFinalized, "can't withdraw money until the auction has ended");
+            balance = bidMoneyPoolCalculator(tokenId, currentAuctionNum, msg.sender);
+            if(balance > 0) {
+                if(!payable(msg.sender).send(balance)) {
+                    revert("withdrawal unsuccessful");
+                }
+            } else {
+                revert("you don't have any money in the bidding pool");
+            }
+        }
+        emit WithdrewMoney(msg.sender, balance);
+    }
+
+    //helper function to save storage
+    function bidMoneyPoolCalculator(uint256 tokenId, uint256 toAuctionNum, address bider) internal returns (uint256) {
+        require(toAuctionNum > 0, "no previous auctions happened for this NFT");
+        uint256 balance;
+        for(uint256 i=1; i <= toAuctionNum; i++) {
+                balance += bidMoneyPool[bider][tokenId][i];
+                bidMoneyPool[bider][tokenId][i] = 0;
+        }
+        return balance;
+    }
 }
-
-
