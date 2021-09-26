@@ -50,7 +50,7 @@ interface SongOrAlbumNFTInterface extends ethers.utils.Interface {
     "setURI(string)": FunctionFragment;
     "showSalePriceFor(uint256)": FunctionFragment;
     "showURI(uint256)": FunctionFragment;
-    "startAuction(uint256,uint256,uint256)": FunctionFragment;
+    "startAuction(uint256,uint256)": FunctionFragment;
     "supportsInterface(bytes4)": FunctionFragment;
     "totalAuctions(uint256)": FunctionFragment;
     "transferOwnership(address)": FunctionFragment;
@@ -163,7 +163,7 @@ interface SongOrAlbumNFTInterface extends ethers.utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "startAuction",
-    values: [BigNumberish, BigNumberish, BigNumberish]
+    values: [BigNumberish, BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "supportsInterface",
@@ -398,7 +398,7 @@ export class SongOrAlbumNFT extends BaseContract {
         currentHigh: BigNumber;
         currentHighBider: string;
         endTime: BigNumber;
-        targetPrice: BigNumber;
+        reservePrice: BigNumber;
         isFinalized: boolean;
       }
     >;
@@ -519,8 +519,7 @@ export class SongOrAlbumNFT extends BaseContract {
 
     startAuction(
       tokenId: BigNumberish,
-      targetPrice: BigNumberish,
-      duration: BigNumberish,
+      reservePrice: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
@@ -581,7 +580,7 @@ export class SongOrAlbumNFT extends BaseContract {
       currentHigh: BigNumber;
       currentHighBider: string;
       endTime: BigNumber;
-      targetPrice: BigNumber;
+      reservePrice: BigNumber;
       isFinalized: boolean;
     }
   >;
@@ -702,8 +701,7 @@ export class SongOrAlbumNFT extends BaseContract {
 
   startAuction(
     tokenId: BigNumberish,
-    targetPrice: BigNumberish,
-    duration: BigNumberish,
+    reservePrice: BigNumberish,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
@@ -764,7 +762,7 @@ export class SongOrAlbumNFT extends BaseContract {
         currentHigh: BigNumber;
         currentHighBider: string;
         endTime: BigNumber;
-        targetPrice: BigNumber;
+        reservePrice: BigNumber;
         isFinalized: boolean;
       }
     >;
@@ -871,8 +869,7 @@ export class SongOrAlbumNFT extends BaseContract {
 
     startAuction(
       tokenId: BigNumberish,
-      targetPrice: BigNumberish,
-      duration: BigNumberish,
+      reservePrice: BigNumberish,
       overrides?: CallOverrides
     ): Promise<void>;
 
@@ -927,14 +924,14 @@ export class SongOrAlbumNFT extends BaseContract {
     NewAuction(
       tokenId?: null,
       auctionNum?: null,
-      targetPrice?: null,
+      reservePrice?: null,
       endTime?: null
     ): TypedEventFilter<
       [BigNumber, BigNumber, BigNumber, BigNumber],
       {
         tokenId: BigNumber;
         auctionNum: BigNumber;
-        targetPrice: BigNumber;
+        reservePrice: BigNumber;
         endTime: BigNumber;
       }
     >;
@@ -1224,8 +1221,7 @@ export class SongOrAlbumNFT extends BaseContract {
 
     startAuction(
       tokenId: BigNumberish,
-      targetPrice: BigNumberish,
-      duration: BigNumberish,
+      reservePrice: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
@@ -1414,8 +1410,7 @@ export class SongOrAlbumNFT extends BaseContract {
 
     startAuction(
       tokenId: BigNumberish,
-      targetPrice: BigNumberish,
-      duration: BigNumberish,
+      reservePrice: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
