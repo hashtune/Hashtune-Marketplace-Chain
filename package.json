@@ -6,6 +6,9 @@
   "scripts": {
     "dev:start": "ts-node-dev --watch -- ./scripts/*",
     "lint": "tslint --config tslint.json --project tsconfig.json",
+    "test:ci": "npx hardhat test --network testnet",
+    "test:local": "npx hardhat test --network localhost",
+    "test:local:ws": "npx hardhat run --network localhost ./scripts/test.ts",
     "transpile": "tsc -w"
   },
   "author": "",

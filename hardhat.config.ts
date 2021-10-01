@@ -35,9 +35,9 @@ module.exports = {
     settings: {
       optimizer: {
         enabled: true,
-        runs: 200
-      }
-    }
+        runs: 200,
+      },
+    },
   },
   watcher: {
     compilation: {
@@ -51,5 +51,39 @@ module.exports = {
     target: "ethers-v5",
     alwaysGenerateOverloads: false, // should overloads with full signatures like deposit(uint256) be generated always, even if there are no overloads?
     externalArtifacts: ["externalArtifacts/*.json"], // optional array of glob patterns with external artifacts to process (for example external libs from node_modules)
+  },
+  defaultNetwork: "hardhat",
+  networks: {
+    localhost: {
+      url: "http://127.0.0.1:8545",
+    },
+    hardhat: {},
+    testnet: {
+      url: "https://data-seed-prebsc-1-s1.binance.org:8545",
+      chainId: 97,
+      gasPrice: 20000000000,
+      accounts: {
+        mnemonic:
+          "movie strategy exhaust aspect taxi feed lend car nominee spin subway cupboard",
+      },
+    },
+    mainnet: {
+      url: "https://bsc-dataseed.binance.org/",
+      chainId: 56,
+      gasPrice: 20000000000,
+      accounts: {
+        mnemonic:
+          "movie strategy exhaust aspect taxi feed lend car nominee spin subway cupboard",
+      },
+    },
+  },
+  paths: {
+    sources: "./contracts",
+    tests: "./test",
+    cache: "./cache",
+    artifacts: "./artifacts",
+  },
+  mocha: {
+    timeout: 5000000000,
   },
 };
