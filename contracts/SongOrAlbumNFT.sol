@@ -31,7 +31,15 @@ contract SongOrAlbumNFT is ERC1155, Ownable, AccessControl {
 
     // Custom Events
     event NewURI(address setBy, string newAddress);
-    event TokenCreated(address by, uint256 tokenId, address[] creators);
+    event TokenCreated(
+        address by, 
+        uint256 tokenId, 
+        address[] creators, 
+        uint256[] creatorsShare, 
+        DataModel.ArtStatus status, 
+        bytes32 digest,
+        uint8 hashFunction,
+        uint8 size);
     event TokenPurchased(address by, uint256 tokenId);
     event PayoutOccurred(address to, uint256 amount);
     event NewPrice(address setBy, uint256 newPrice, uint256 tokenId);
@@ -91,7 +99,13 @@ contract SongOrAlbumNFT is ERC1155, Ownable, AccessControl {
                 size));
         
         _mint(msg.sender, totalArts, 1, data);
-        emit TokenCreated(msg.sender, totalArts, creators);
+        if(uint8(status) == 1) {
+            require(salePrice > 0, "Price should be greater than 0");
+        }
+        if(uint8(status) == 2) {
+
+        }
+        emit TokenCreated(msg.sender, totalArts, creators, creatorsShare, status, digest, hashFunction, size);
     }
 
     function setApprovalToBuy(address toApprove, uint256 tokenId) public {

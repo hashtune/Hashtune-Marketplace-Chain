@@ -299,7 +299,7 @@ interface SongOrAlbumNFTInterface extends ethers.utils.Interface {
     "RoleAdminChanged(bytes32,bytes32,bytes32)": EventFragment;
     "RoleGranted(bytes32,address,address)": EventFragment;
     "RoleRevoked(bytes32,address,address)": EventFragment;
-    "TokenCreated(address,uint256,address[])": EventFragment;
+    "TokenCreated(address,uint256,address[],uint256[],uint8,bytes32,uint8,uint8)": EventFragment;
     "TokenPurchased(address,uint256)": EventFragment;
     "TransferBatch(address,address,address,uint256[],uint256[])": EventFragment;
     "TransferSingle(address,address,address,uint256,uint256)": EventFragment;
@@ -1104,10 +1104,33 @@ export class SongOrAlbumNFT extends BaseContract {
     TokenCreated(
       by?: null,
       tokenId?: null,
-      creators?: null
+      creators?: null,
+      creatorsShare?: null,
+      status?: null,
+      digest?: null,
+      hashFunction?: null,
+      size?: null
     ): TypedEventFilter<
-      [string, BigNumber, string[]],
-      { by: string; tokenId: BigNumber; creators: string[] }
+      [
+        string,
+        BigNumber,
+        string[],
+        BigNumber[],
+        number,
+        string,
+        number,
+        number
+      ],
+      {
+        by: string;
+        tokenId: BigNumber;
+        creators: string[];
+        creatorsShare: BigNumber[];
+        status: number;
+        digest: string;
+        hashFunction: number;
+        size: number;
+      }
     >;
 
     TokenPurchased(

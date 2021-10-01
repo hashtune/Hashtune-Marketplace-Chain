@@ -17,7 +17,7 @@ async function main() {
   )) as SongOrAlbumNFT;
   await user.deployed();
 
-  user.on("TokenCreated", (by, tokenId, creators) => {
+  user.on("TokenCreated", (by, tokenId, creators, creatorsShare, status, digest, hashFunction, size) => {
     console.log(
       "Token created!",
       "By: ",
@@ -25,7 +25,17 @@ async function main() {
       "Token ID:",
       tokenId,
       "Createors:",
-      creators
+      creators,
+      "Creators Share:",
+      creatorsShare,
+      "Status:",
+      status, 
+      "Digest:",
+      digest, 
+      "Hash Function:",
+      hashFunction,
+      "Size:" ,
+      size
     );
   });
 
