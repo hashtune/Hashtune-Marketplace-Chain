@@ -10,8 +10,9 @@ async function main() {
   // const instance = await hre.ethers.getContractFactory("SongOrAlbumNFT");
   const contractInstance = await hre.ethers.getContractAt(
     "SongOrAlbumNFT",
-    "0xa722bdA6968F50778B973Ae2701e90200C564B49"
+    process.env.CONTRACT!
   );
+  console.log({ contractInstance });
 
   // LISTENER
   const eventList = contractInstance.interface.events;
