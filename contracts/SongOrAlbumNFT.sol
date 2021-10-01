@@ -40,15 +40,11 @@ contract SongOrAlbumNFT is ERC1155, Ownable, AccessControl {
     event EndAuction(uint256 tokenId, uint256 auctionNum, address newOwner, uint256 soldFor);
     event WithdrawMoney(address receiver, uint256 withdrawnAmount);
     
-    constructor (
-        string memory uri_
-    //, uint256 hashtuneShare
-    //, uint256 artistRoyalty
-        ) ERC1155(uri_) {
+    constructor (string memory uri_, uint256 _hashtuneShare, uint256 _artistRoyalty) ERC1155(uri_) {
         console.log("Deploying a Song or Album Contract with uri:", uri_);
         hashtuneAddress = msg.sender;
-        //hashtuneShare = hashtuneShare; //adding share value at the time of deployment
-        //artistRoyalty = artistRoyalty;
+        hashtuneShare = _hashtuneShare; //adding share value at the time of deployment
+        artistRoyalty = _artistRoyalty;
     }
 
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC1155, AccessControl) returns (bool) {
@@ -70,16 +66,32 @@ contract SongOrAlbumNFT is ERC1155, Ownable, AccessControl {
         return _prices[id];
     }
 
-    function create(address[] memory accounts, uint256 id, bytes memory data, uint256 salePrice) onlyOwner
-        public
-    {
-        // Emits a TransferSingle 
-        emit TokenCreated(msg.sender, id, accounts);
-        _prices[id] = salePrice;
-        _tokenCreators[id] = accounts;
-        _currentOwners[id] = msg.sender;
-        _listings[id] = true;
-        _mint(msg.sender, id, 1, data);
+    function create(
+        address[] memory creators,
+        uint256[] memory creatorsShare,
+        DataModel.ArtStatus status,
+        bytes memory data,
+        uint256 salePrice,
+        bytes32 digest,
+        uint8 hashFunction,
+        uint8 size
+        ) public {
+        
+        require(creators.length == creatorsShare.length, "all creators must have shares defined");
+        
+        arts[totalArts++] = DataModel.ArtInfo(
+            status,
+            msg.sender,
+            creators,
+            creatorsShare,
+            salePrice,
+            DataModel.MultiHash(
+                digest,
+                hashFunction,
+                size));
+        
+        _mint(msg.sender, totalArts, 1, data);
+        emit TokenCreated(msg.sender, totalArts, creators);
     }
 
     function setApprovalToBuy(address toApprove, uint256 tokenId) public {

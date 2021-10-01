@@ -25,12 +25,13 @@ interface SongOrAlbumNFTInterface extends ethers.utils.Interface {
     "DEFAULT_ADMIN_ROLE()": FunctionFragment;
     "_listings(uint256)": FunctionFragment;
     "_prices(uint256)": FunctionFragment;
+    "arts(uint256)": FunctionFragment;
     "balanceOf(address,uint256)": FunctionFragment;
     "balanceOfBatch(address[],uint256[])": FunctionFragment;
     "bidMoneyPool(address,uint256,uint256)": FunctionFragment;
     "bids(uint256,uint256)": FunctionFragment;
     "buy(uint256)": FunctionFragment;
-    "create(address[],uint256,bytes,uint256)": FunctionFragment;
+    "create(address[],uint256[],uint8,bytes,uint256,bytes32,uint8,uint8)": FunctionFragment;
     "endAuction(uint256)": FunctionFragment;
     "getCurrentOwner(uint256)": FunctionFragment;
     "getRoleAdmin(bytes32)": FunctionFragment;
@@ -70,6 +71,7 @@ interface SongOrAlbumNFTInterface extends ethers.utils.Interface {
     functionFragment: "_prices",
     values: [BigNumberish]
   ): string;
+  encodeFunctionData(functionFragment: "arts", values: [BigNumberish]): string;
   encodeFunctionData(
     functionFragment: "balanceOf",
     values: [string, BigNumberish]
@@ -89,7 +91,16 @@ interface SongOrAlbumNFTInterface extends ethers.utils.Interface {
   encodeFunctionData(functionFragment: "buy", values: [BigNumberish]): string;
   encodeFunctionData(
     functionFragment: "create",
-    values: [string[], BigNumberish, BytesLike, BigNumberish]
+    values: [
+      string[],
+      BigNumberish[],
+      BigNumberish,
+      BytesLike,
+      BigNumberish,
+      BytesLike,
+      BigNumberish,
+      BigNumberish
+    ]
   ): string;
   encodeFunctionData(
     functionFragment: "endAuction",
@@ -189,6 +200,7 @@ interface SongOrAlbumNFTInterface extends ethers.utils.Interface {
   ): Result;
   decodeFunctionResult(functionFragment: "_listings", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "_prices", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "arts", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "balanceOf", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "balanceOfBatch",
@@ -292,7 +304,7 @@ interface SongOrAlbumNFTInterface extends ethers.utils.Interface {
     "TransferBatch(address,address,address,uint256[],uint256[])": EventFragment;
     "TransferSingle(address,address,address,uint256,uint256)": EventFragment;
     "URI(string,uint256)": EventFragment;
-    "WithdrewMoney(address,uint256)": EventFragment;
+    "WithdrawMoney(address,uint256)": EventFragment;
   };
 
   getEvent(nameOrSignatureOrTopic: "ApprovalForAll"): EventFragment;
@@ -311,7 +323,7 @@ interface SongOrAlbumNFTInterface extends ethers.utils.Interface {
   getEvent(nameOrSignatureOrTopic: "TransferBatch"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "TransferSingle"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "URI"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "WithdrewMoney"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "WithdrawMoney"): EventFragment;
 }
 
 export class SongOrAlbumNFT extends BaseContract {
@@ -370,6 +382,31 @@ export class SongOrAlbumNFT extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[BigNumber]>;
 
+    arts(
+      arg0: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<
+      [
+        number,
+        string,
+        BigNumber,
+        [string, number, number] & {
+          digest: string;
+          hashFunction: number;
+          size: number;
+        }
+      ] & {
+        status: number;
+        currentOwner: string;
+        salePrice: BigNumber;
+        metaData: [string, number, number] & {
+          digest: string;
+          hashFunction: number;
+          size: number;
+        };
+      }
+    >;
+
     balanceOf(
       account: string,
       id: BigNumberish,
@@ -409,10 +446,14 @@ export class SongOrAlbumNFT extends BaseContract {
     ): Promise<ContractTransaction>;
 
     create(
-      accounts: string[],
-      id: BigNumberish,
+      creators: string[],
+      creatorsShare: BigNumberish[],
+      status: BigNumberish,
       data: BytesLike,
       salePrice: BigNumberish,
+      digest: BytesLike,
+      hashFunction: BigNumberish,
+      size: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
@@ -552,6 +593,31 @@ export class SongOrAlbumNFT extends BaseContract {
 
   _prices(arg0: BigNumberish, overrides?: CallOverrides): Promise<BigNumber>;
 
+  arts(
+    arg0: BigNumberish,
+    overrides?: CallOverrides
+  ): Promise<
+    [
+      number,
+      string,
+      BigNumber,
+      [string, number, number] & {
+        digest: string;
+        hashFunction: number;
+        size: number;
+      }
+    ] & {
+      status: number;
+      currentOwner: string;
+      salePrice: BigNumber;
+      metaData: [string, number, number] & {
+        digest: string;
+        hashFunction: number;
+        size: number;
+      };
+    }
+  >;
+
   balanceOf(
     account: string,
     id: BigNumberish,
@@ -591,10 +657,14 @@ export class SongOrAlbumNFT extends BaseContract {
   ): Promise<ContractTransaction>;
 
   create(
-    accounts: string[],
-    id: BigNumberish,
+    creators: string[],
+    creatorsShare: BigNumberish[],
+    status: BigNumberish,
     data: BytesLike,
     salePrice: BigNumberish,
+    digest: BytesLike,
+    hashFunction: BigNumberish,
+    size: BigNumberish,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
@@ -734,6 +804,31 @@ export class SongOrAlbumNFT extends BaseContract {
 
     _prices(arg0: BigNumberish, overrides?: CallOverrides): Promise<BigNumber>;
 
+    arts(
+      arg0: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<
+      [
+        number,
+        string,
+        BigNumber,
+        [string, number, number] & {
+          digest: string;
+          hashFunction: number;
+          size: number;
+        }
+      ] & {
+        status: number;
+        currentOwner: string;
+        salePrice: BigNumber;
+        metaData: [string, number, number] & {
+          digest: string;
+          hashFunction: number;
+          size: number;
+        };
+      }
+    >;
+
     balanceOf(
       account: string,
       id: BigNumberish,
@@ -770,10 +865,14 @@ export class SongOrAlbumNFT extends BaseContract {
     buy(tokenId: BigNumberish, overrides?: CallOverrides): Promise<void>;
 
     create(
-      accounts: string[],
-      id: BigNumberish,
+      creators: string[],
+      creatorsShare: BigNumberish[],
+      status: BigNumberish,
       data: BytesLike,
       salePrice: BigNumberish,
+      digest: BytesLike,
+      hashFunction: BigNumberish,
+      size: BigNumberish,
       overrides?: CallOverrides
     ): Promise<void>;
 
@@ -1058,7 +1157,7 @@ export class SongOrAlbumNFT extends BaseContract {
       id?: BigNumberish | null
     ): TypedEventFilter<[string, BigNumber], { value: string; id: BigNumber }>;
 
-    WithdrewMoney(
+    WithdrawMoney(
       receiver?: null,
       withdrawnAmount?: null
     ): TypedEventFilter<
@@ -1076,6 +1175,8 @@ export class SongOrAlbumNFT extends BaseContract {
     ): Promise<BigNumber>;
 
     _prices(arg0: BigNumberish, overrides?: CallOverrides): Promise<BigNumber>;
+
+    arts(arg0: BigNumberish, overrides?: CallOverrides): Promise<BigNumber>;
 
     balanceOf(
       account: string,
@@ -1108,10 +1209,14 @@ export class SongOrAlbumNFT extends BaseContract {
     ): Promise<BigNumber>;
 
     create(
-      accounts: string[],
-      id: BigNumberish,
+      creators: string[],
+      creatorsShare: BigNumberish[],
+      status: BigNumberish,
       data: BytesLike,
       salePrice: BigNumberish,
+      digest: BytesLike,
+      hashFunction: BigNumberish,
+      size: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
@@ -1263,6 +1368,11 @@ export class SongOrAlbumNFT extends BaseContract {
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
+    arts(
+      arg0: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
     balanceOf(
       account: string,
       id: BigNumberish,
@@ -1294,10 +1404,14 @@ export class SongOrAlbumNFT extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     create(
-      accounts: string[],
-      id: BigNumberish,
+      creators: string[],
+      creatorsShare: BigNumberish[],
+      status: BigNumberish,
       data: BytesLike,
       salePrice: BigNumberish,
+      digest: BytesLike,
+      hashFunction: BigNumberish,
+      size: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
