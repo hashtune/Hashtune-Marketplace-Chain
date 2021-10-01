@@ -5,6 +5,7 @@ import "hardhat/console.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "./DataModel.sol";
 // override key word means it is overriding a virtual function it inherited from
 // public - all can access
 // external - Cannot be accessed internally, only externally
@@ -13,21 +14,18 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 // TODO add event emissions
 contract SongOrAlbumNFT is ERC1155, Ownable, AccessControl {
 
-    //TODO: convert into a seperate Library to save storage
-    struct auctionInfo {
-        uint256 currentHigh;
-        address currentHighBider;
-        uint256 endTime;
-        uint256 reservePrice;
-        bool isFinalized;
-    }
+    uint256 totalArts;
+    address hashtuneAddress;
+    uint256 hashtuneShare = 2; //represents 2%
+    uint256 artistRoyalty = 2;
     
     //TODO: refactor to use different structure in order to save some storage
+    mapping(uint256 => DataModel.ArtInfo) public arts;
     mapping(uint256 => uint256) public _prices;
     mapping(uint256 => address[]) private _tokenCreators;
     mapping(uint256 => address) private _currentOwners;
     mapping(uint256 => bool) public _listings;
-    mapping(uint256 => mapping(uint256 => auctionInfo)) public bids;
+    mapping(uint256 => mapping(uint256 => DataModel.AuctionInfo)) public bids;
     mapping(address => mapping(uint256 => mapping(uint256 => uint256))) public bidMoneyPool;
     mapping(uint256 => uint256) public totalAuctions; // alternative to mapping array of struct 
 
@@ -40,10 +38,17 @@ contract SongOrAlbumNFT is ERC1155, Ownable, AccessControl {
     event NewBid(address by, uint256 tokenId, uint256 amount);
     event NewAuction(uint256 tokenId, uint256 auctionNum, uint256 reservePrice, uint256 endTime);
     event EndAuction(uint256 tokenId, uint256 auctionNum, address newOwner, uint256 soldFor);
-    event WithdrewMoney(address receiver, uint256 withdrawnAmount);
+    event WithdrawMoney(address receiver, uint256 withdrawnAmount);
     
-    constructor (string memory uri_) ERC1155(uri_) {
+    constructor (
+        string memory uri_
+    //, uint256 hashtuneShare
+    //, uint256 artistRoyalty
+        ) ERC1155(uri_) {
         console.log("Deploying a Song or Album Contract with uri:", uri_);
+        hashtuneAddress = msg.sender;
+        //hashtuneShare = hashtuneShare; //adding share value at the time of deployment
+        //artistRoyalty = artistRoyalty;
     }
 
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC1155, AccessControl) returns (bool) {
@@ -102,7 +107,6 @@ contract SongOrAlbumNFT is ERC1155, Ownable, AccessControl {
         }
         
         // Hashtune Cut
-        address hashtuneAddress = address(0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199);
         uint256 platformCut = (msg.value * 2) / 100;
         sendTo(payable(hashtuneAddress), platformCut);
 
@@ -226,11 +230,11 @@ contract SongOrAlbumNFT is ERC1155, Ownable, AccessControl {
                 revert("you don't have any money in the bidding pool");
             }
         }
-        emit WithdrewMoney(msg.sender, balance);
+        emit WithdrawMoney(msg.sender, balance);
     }
 
     //helper function to save storage
-    function bidMoneyPoolCalculator(uint256 tokenId, uint256 toAuctionNum, address bider) internal returns (uint256) {
+    function bidMoneyPoolCalculator(uint256 tokenId, uint256 toAuctionNum, address bider) private returns (uint256) {
         require(toAuctionNum > 0, "no previous auctions happened for this NFT");
         uint256 balance;
         for(uint256 i=1; i <= toAuctionNum; i++) {
