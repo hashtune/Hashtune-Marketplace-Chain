@@ -101,9 +101,10 @@ contract SongOrAlbumNFT is ERC1155, Ownable, AccessControl {
         _mint(msg.sender, totalArts, 1, data);
         if(uint8(status) == 1) {
             require(salePrice > 0, "Price should be greater than 0");
+            //TODO create new function to sell art and call it here 
         }
         if(uint8(status) == 2) {
-
+            //TODO some logic for auction sale
         }
         emit TokenCreated(msg.sender, totalArts, creators, creatorsShare, status, digest, hashFunction, size);
     }
