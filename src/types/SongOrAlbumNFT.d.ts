@@ -25,6 +25,7 @@ interface SongOrAlbumNFTInterface extends ethers.utils.Interface {
     "DEFAULT_ADMIN_ROLE()": FunctionFragment;
     "_listings(uint256)": FunctionFragment;
     "_prices(uint256)": FunctionFragment;
+    "arts(uint256)": FunctionFragment;
     "balanceOf(address,uint256)": FunctionFragment;
     "balanceOfBatch(address[],uint256[])": FunctionFragment;
     "bidMoneyPool(address,uint256,uint256)": FunctionFragment;
@@ -70,6 +71,7 @@ interface SongOrAlbumNFTInterface extends ethers.utils.Interface {
     functionFragment: "_prices",
     values: [BigNumberish]
   ): string;
+  encodeFunctionData(functionFragment: "arts", values: [BigNumberish]): string;
   encodeFunctionData(
     functionFragment: "balanceOf",
     values: [string, BigNumberish]
@@ -189,6 +191,7 @@ interface SongOrAlbumNFTInterface extends ethers.utils.Interface {
   ): Result;
   decodeFunctionResult(functionFragment: "_listings", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "_prices", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "arts", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "balanceOf", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "balanceOfBatch",
@@ -292,7 +295,7 @@ interface SongOrAlbumNFTInterface extends ethers.utils.Interface {
     "TransferBatch(address,address,address,uint256[],uint256[])": EventFragment;
     "TransferSingle(address,address,address,uint256,uint256)": EventFragment;
     "URI(string,uint256)": EventFragment;
-    "WithdrewMoney(address,uint256)": EventFragment;
+    "WithdrawMoney(address,uint256)": EventFragment;
   };
 
   getEvent(nameOrSignatureOrTopic: "ApprovalForAll"): EventFragment;
@@ -311,7 +314,7 @@ interface SongOrAlbumNFTInterface extends ethers.utils.Interface {
   getEvent(nameOrSignatureOrTopic: "TransferBatch"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "TransferSingle"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "URI"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "WithdrewMoney"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "WithdrawMoney"): EventFragment;
 }
 
 export class SongOrAlbumNFT extends BaseContract {
@@ -369,6 +372,17 @@ export class SongOrAlbumNFT extends BaseContract {
       arg0: BigNumberish,
       overrides?: CallOverrides
     ): Promise<[BigNumber]>;
+
+    arts(
+      arg0: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<
+      [number, string, BigNumber] & {
+        status: number;
+        currentOwner: string;
+        salePrice: BigNumber;
+      }
+    >;
 
     balanceOf(
       account: string,
@@ -552,6 +566,17 @@ export class SongOrAlbumNFT extends BaseContract {
 
   _prices(arg0: BigNumberish, overrides?: CallOverrides): Promise<BigNumber>;
 
+  arts(
+    arg0: BigNumberish,
+    overrides?: CallOverrides
+  ): Promise<
+    [number, string, BigNumber] & {
+      status: number;
+      currentOwner: string;
+      salePrice: BigNumber;
+    }
+  >;
+
   balanceOf(
     account: string,
     id: BigNumberish,
@@ -733,6 +758,17 @@ export class SongOrAlbumNFT extends BaseContract {
     _listings(arg0: BigNumberish, overrides?: CallOverrides): Promise<boolean>;
 
     _prices(arg0: BigNumberish, overrides?: CallOverrides): Promise<BigNumber>;
+
+    arts(
+      arg0: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<
+      [number, string, BigNumber] & {
+        status: number;
+        currentOwner: string;
+        salePrice: BigNumber;
+      }
+    >;
 
     balanceOf(
       account: string,
@@ -1058,7 +1094,7 @@ export class SongOrAlbumNFT extends BaseContract {
       id?: BigNumberish | null
     ): TypedEventFilter<[string, BigNumber], { value: string; id: BigNumber }>;
 
-    WithdrewMoney(
+    WithdrawMoney(
       receiver?: null,
       withdrawnAmount?: null
     ): TypedEventFilter<
@@ -1076,6 +1112,8 @@ export class SongOrAlbumNFT extends BaseContract {
     ): Promise<BigNumber>;
 
     _prices(arg0: BigNumberish, overrides?: CallOverrides): Promise<BigNumber>;
+
+    arts(arg0: BigNumberish, overrides?: CallOverrides): Promise<BigNumber>;
 
     balanceOf(
       account: string,
@@ -1259,6 +1297,11 @@ export class SongOrAlbumNFT extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     _prices(
+      arg0: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    arts(
       arg0: BigNumberish,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
