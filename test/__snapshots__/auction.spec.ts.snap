@@ -1,0 +1,25 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`auction Auction with reserve price can bid a lower reserve price and currenthigh if I already have a bid, it should be cumulative 1`] = `"0x70997970C51812dc3A010C7d01b50e0d17dc79C8"`;
+
+exports[`auction Auction with reserve price can bid on an auction if my price is higher than the current high 1`] = `"0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"`;
+
+exports[`auction Auction with reserve price can bid on an auction if my price is higher than the reserve price 1`] = `"0x70997970C51812dc3A010C7d01b50e0d17dc79C8"`;
+
+exports[`auction Auction with reserve price can create an auction for a token I own with a reserve price 1`] = `"0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"`;
+
+exports[`auction Auction with reserve price cannot bid on an auction if my price is lower than the current high 1`] = `[ProviderError: Error: VM Exception while processing transaction: reverted with reason string 'bid amount should be greator than the reservePrice']`;
+
+exports[`auction Auction with reserve price cannot bid on an auction if my price is lower than the reserve price 1`] = `[ProviderError: Error: VM Exception while processing transaction: reverted with reason string 'bid amount should be greator than the reservePrice']`;
+
+exports[`auction Auction with reserve price cannot create an auction for a token I do not own 1`] = `[ProviderError: Error: VM Exception while processing transaction: reverted with reason string 'can't start the auction of NFT you don't own']`;
+
+exports[`auction Auction with reserve price cannot create an auction for a token that already has an ongoing auction 1`] = `[ProviderError: Error: VM Exception while processing transaction: reverted with reason string 'previous auction is still on going.']`;
+
+exports[`auction Auction with reserve price cannot end an auction I did not create 1`] = `[ProviderError: Error: VM Exception while processing transaction: reverted with reason string 'only owner of the NFT can end the auction']`;
+
+exports[`auction Auction with reserve price cannot end an ongoing auction before the end time 1`] = `[ProviderError: Error: VM Exception while processing transaction: reverted with reason string 'can\`t end ongoing time based auction']`;
+
+exports[`auction Auction with reserve price cannot withdraw my funds out if I did not put money in 1`] = `[ProviderError: Error: VM Exception while processing transaction: reverted with reason string 'you don't have any money in the bidding pool']`;
+
+exports[`auction Auction with reserve price cannot withdraw my funds out if the auction is ongoing 1`] = `[ProviderError: Error: VM Exception while processing transaction: reverted with reason string 'can't withdraw money until the auction has ended']`;

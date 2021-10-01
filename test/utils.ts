@@ -1,7 +1,7 @@
 import { providers, Signer } from "ethers";
 import { SongOrAlbumNFT } from "~/src/types/SongOrAlbumNFT";
 
-import { Context } from "./songOrAlbumNFT.spec";
+import { Context } from "./contract.spec";
 
 /**
  *
