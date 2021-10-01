@@ -6,9 +6,10 @@
   "scripts": {
     "dev:start": "ts-node-dev --watch -- ./scripts/*",
     "lint": "tslint --config tslint.json --project tsconfig.json",
-    "test:ci": "npx hardhat test --network testnet",
-    "test:local": "npx hardhat test --network localhost",
+    "test:ci": "dotenv -e .env.testnet -- npx hardhat test --network testnet ./test/ci.spec.ts",
+    "test:local": "dotenv -e .env.local --  npx hardhat test --network localhost ./test/auction.spec.ts ./test/contract.spec.ts",
     "test:local:ws": "npx hardhat run --network localhost ./scripts/test.ts",
+    "test:ci:ws": "dotenv -e .env.testnet -- npx hardhat run --network testnet ./scripts/test.ts",
     "transpile": "tsc -w"
   },
   "author": "",
@@ -39,6 +40,8 @@
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.3.1",
+    "dotenv": "^10.0.0",
+    "dotenv-cli": "^4.0.0",
     "hardhat-watcher": "^2.1.1",
     "tsconfig-paths": "^3.11.0",
     "web3": "^1.5.2"

@@ -14,7 +14,15 @@ In another terminal window:
 
 `npm run test:local` in another terminal
 
+`npm run test:local:ws` to listen for events locally in another terminal, need to manually replace the process.env.CONTRACT with the address of a deployed contract
+
 `UPDATE_SNAPSHOT=1 npx hardhat test` to update snapshots
+
+### Testnet
+
+`npm run test:ci:ws` to listen for events on the test net
+
+`npm run test:ci` to run the tests on the test net in another terminal
 
 ## Deploying
 

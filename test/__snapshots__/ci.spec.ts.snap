@@ -1,0 +1,10 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ci can change the price of the token 1`] = `"0x0186a0"`;
+
+exports[`ci can sell the token if they own it 1`] = `
+Object {
+  "hex": "0x00",
+  "type": "BigNumber",
+}
+`;
