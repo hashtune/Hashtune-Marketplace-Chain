@@ -160,7 +160,7 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
             require(arts[tokenId].salePrice == msg.value, "incorrect amount sent");
             arts[tokenId].currentOwner = msg.sender;
             arts[tokenId].status == DataModel.ArtStatus.idle;
-            safeTransferFrom(arts[tokenId].currentOwner, msg.sender, tokenId, 1, "");
+            _safeTransferFrom(arts[tokenId].currentOwner, msg.sender, tokenId, 1, "");
             handlePayment(tokenId, payable(msg.sender), msg.value);
 
         // // Royalty
