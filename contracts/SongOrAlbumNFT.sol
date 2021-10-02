@@ -4,15 +4,15 @@ pragma solidity ^0.8.0;
 import "hardhat/console.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "./DataModel.sol";
+import "./ArtistControl.sol";
 // override key word means it is overriding a virtual function it inherited from
 // public - all can access
 // external - Cannot be accessed internally, only externally
 // internal - only this contract and contracts deriving from it can access
 // private - can be accessed only from this contract
 // TODO add event emissions
-contract SongOrAlbumNFT is ERC1155, Ownable, AccessControl {
+contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
 
     uint256 totalArts;
     address hashtuneAddress;
@@ -21,12 +21,13 @@ contract SongOrAlbumNFT is ERC1155, Ownable, AccessControl {
     
     //TODO: refactor to use different structure in order to save some storage
     mapping(uint256 => DataModel.ArtInfo) public arts;
+    mapping(uint256 => mapping(uint256 => DataModel.AuctionInfo)) public bids;
+    mapping(address => mapping(uint256 => mapping(uint256 => uint256))) public bidMoneyPool;
     mapping(uint256 => uint256) public _prices;
     mapping(uint256 => address[]) private _tokenCreators;
     mapping(uint256 => address) private _currentOwners;
     mapping(uint256 => bool) public _listings;
-    mapping(uint256 => mapping(uint256 => DataModel.AuctionInfo)) public bids;
-    mapping(address => mapping(uint256 => mapping(uint256 => uint256))) public bidMoneyPool;
+
     mapping(uint256 => uint256) public totalAuctions; // alternative to mapping array of struct 
 
     // Custom Events
@@ -100,7 +101,7 @@ contract SongOrAlbumNFT is ERC1155, Ownable, AccessControl {
         bytes32 digest,
         uint8 hashFunction,
         uint8 size
-        ) public {
+        ) public onlyApprovedArtist {
         
         require(creators.length == creatorsShare.length, "all creators must have shares defined");
         
