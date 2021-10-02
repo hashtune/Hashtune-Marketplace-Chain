@@ -20,13 +20,15 @@ contract SongOrAlbumNFT is ERC1155, Ownable, AccessControl {
     uint256 artistRoyalty = 2;
     
     //TODO: refactor to use different structure in order to save some storage
+    mapping(address => bool) public approvedArtists;
     mapping(uint256 => DataModel.ArtInfo) public arts;
+    mapping(uint256 => mapping(uint256 => DataModel.AuctionInfo)) public bids;
+    mapping(address => mapping(uint256 => mapping(uint256 => uint256))) public bidMoneyPool;
     mapping(uint256 => uint256) public _prices;
     mapping(uint256 => address[]) private _tokenCreators;
     mapping(uint256 => address) private _currentOwners;
     mapping(uint256 => bool) public _listings;
-    mapping(uint256 => mapping(uint256 => DataModel.AuctionInfo)) public bids;
-    mapping(address => mapping(uint256 => mapping(uint256 => uint256))) public bidMoneyPool;
+
     mapping(uint256 => uint256) public totalAuctions; // alternative to mapping array of struct 
 
     // Custom Events
@@ -88,6 +90,16 @@ contract SongOrAlbumNFT is ERC1155, Ownable, AccessControl {
 
     function showSalePriceFor(uint256 id) public view returns (uint256) {
         return _prices[id];
+    }
+
+    function approveArtist(address artist) public {
+        approvedArtists[artist] = true;
+    }
+
+    function approveArtistBatch(address[] memory artists) public {
+        for(uint i= 0; i < artists.length; i++) {
+            approvedArtists[artists[i]]= true;
+        }
     }
 
     function create(
