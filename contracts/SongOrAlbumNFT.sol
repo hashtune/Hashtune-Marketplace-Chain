@@ -119,7 +119,7 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
             }
             require(sharePercent == 100 , "accumulated share should be equal to 100 percent");
             arts[++totalArts] = DataModel.ArtInfo(
-                status,
+                DataModel.ArtStatus.idle,
                 msg.sender,
                 creators,
                 creatorsShare,
