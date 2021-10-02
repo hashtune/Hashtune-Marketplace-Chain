@@ -23,11 +23,6 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
     mapping(uint256 => DataModel.ArtInfo) public arts;
     mapping(uint256 => mapping(uint256 => DataModel.AuctionInfo)) public bids;
     mapping(address => mapping(uint256 => mapping(uint256 => uint256))) public bidMoneyPool;
-    mapping(uint256 => uint256) public _prices;
-    mapping(uint256 => address[]) private _tokenCreators;
-    mapping(uint256 => address) private _currentOwners;
-    mapping(uint256 => bool) public _listings;
-
     mapping(uint256 => uint256) public totalAuctions; // alternative to mapping array of struct 
 
     // Custom Events
@@ -75,10 +70,11 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
         _;
     }
     
-    constructor (string memory uri_, uint256 _hashtuneSharePercent) ERC1155(uri_) {
+    constructor (string memory uri_, uint256 _hashtuneSharePercent, uint256 _creatorsRoyaltyReservePercent) ERC1155(uri_) {
         console.log("Deploying a Song or Album Contract with uri:", uri_);
         hashtuneAddress = payable(msg.sender);
         hashtuneSharePercent = _hashtuneSharePercent; //adding share value at the time of deployment
+        creatorsRoyaltyReservePercent = _creatorsRoyaltyReservePercent;
     }
 
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC1155, AccessControl) returns (bool) {
@@ -97,7 +93,7 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
     }
 
     function showSalePriceFor(uint256 id) public view returns (uint256) {
-        return _prices[id];
+        //return _prices[id];
     }
 
     function create(
@@ -150,7 +146,7 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
 
     function setApprovalToBuy(address toApprove, uint256 tokenId) public {
         // Emits setApprovalForAll
-        require(_currentOwners[tokenId] == msg.sender, "cannot set approval if not token owner");
+        require(arts[tokenId].currentOwner == msg.sender, "cannot set approval if not token owner");
         return setApprovalForAll(toApprove, true);
     }
   
@@ -163,32 +159,6 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
             _safeTransferFrom(arts[tokenId].currentOwner, msg.sender, tokenId, 1, "");
             handlePayment(tokenId, payable(msg.sender), msg.value);
 
-        // // Royalty
-        // // TODO customize the royalty for each feature
-        // // Assuming ether and not wei (10^18 ether)
-        // // Need to restrict the number of features
-        // uint256 creatorRoyalty = (msg.value * 2) / 100;
-        // uint256 _tokenCreatorsLength = _tokenCreators[tokenId].length;
-        // for (uint256 i=0; i<_tokenCreatorsLength; i++) {
-        //     sendTo(payable(_tokenCreators[tokenId][i]), creatorRoyalty);
-        // }
-        
-        // // Hashtune Cut
-        // uint256 platformCut = (msg.value * 2) / 100;
-        // sendTo(payable(hashtuneAddress), platformCut);
-
-        // // Current Owner
-        // // On the first transaction the current owner is the first creator
-        // // and thus does not receive a royalty
-        // uint256 amount = msg.value - (creatorRoyalty * _tokenCreatorsLength) - platformCut;
-        // sendTo(payable(_currentOwners[tokenId]), amount);
-        // bytes memory data;
-
-        // // Transfer token
-        // // Need to actually transfer the contract if using 721Upgradeable (?)
-        // safeTransferFrom(_currentOwners[tokenId], msg.sender, tokenId, 1, data);
-        // _currentOwners[tokenId] = msg.sender;
-        // // Emits a TransferSingle 
             emit TokenPurchased(msg.sender, tokenId);
     }
 
@@ -204,10 +174,11 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
         uint256 creatorsShare;
         uint256 hashtuneShare = amount * hashtuneSharePercent / 100;
 
+        //handle payment spliting on first sale 
         if(arts[tokenId].isFirstTransfer) {
             creatorsShare = amount * ( 100 - hashtuneSharePercent ) / 100;
             arts[tokenId].isFirstTransfer = false;
-        } else {
+        } else { //royalties after the first sale based on the creatorShare scaled down according to Royalty reserve
             creatorsShare = amount * creatorsRoyaltyReservePercent / 100;
             beneficiary.transfer(amount - hashtuneShare - creatorsShare);
         }
@@ -222,16 +193,15 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
     
     // set listed? This will cost gas to set but prevents a sale from happening without current owners consent?
     function getCurrentOwner(uint256 tokenId) view public returns (address) {
-        return _currentOwners[tokenId];
+        return arts[tokenId].currentOwner;
     }
 
     // Set current price and buy could have a race condition, make sure you 
     // TODO: disable purchase while updating prices by pausing contract first then unpausing
-    function setCurrentPrice(uint256 newPrice, uint256 tokenId) public  {
+    function setCurrentPrice(uint256 newPrice, uint256 tokenId) public onlyNftOwner(tokenId)  {
         emit NewPrice(msg.sender, newPrice, tokenId);
-        require(msg.sender == _currentOwners[tokenId], "cannot set the price for a token you don't currently own");
         require(newPrice > 0, "cannot set the new price of the token to zero");
-        _prices[tokenId] = newPrice;
+        //_prices[tokenId] = newPrice;
     }
 
     //Start the Auction on limeted time based model or without time contraint
@@ -241,7 +211,7 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
     * If the reserve price is set > 0, there is a duration for this auction.
      */
     function startAuction(uint256 tokenId, uint256 reservePrice) public {
-        address currentOwner = _currentOwners[tokenId];
+        address currentOwner = arts[tokenId].currentOwner;
         uint256 previousAuctions = totalAuctions[tokenId];
         bool wasFinalized = bids[tokenId][previousAuctions].isFinalized;
         if(previousAuctions > 0) {
@@ -285,15 +255,14 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
     }
 
     //TODO: implement safe check for whether NFT is up for auction, spliting the royalties, transfering the money
-    function endAuction(uint256 tokenId) public {
+    function endAuction(uint256 tokenId) public onlyNftOwner(tokenId) {
         uint256 currentAuctionNum = totalAuctions[tokenId];
-        require(_currentOwners[tokenId] == msg.sender, "only owner of the NFT can end the auction");
         bytes memory data;
         if(bids[tokenId][currentAuctionNum].endTime == 0) {
-            safeTransferFrom(_currentOwners[tokenId], bids[tokenId][currentAuctionNum].currentHighBider, tokenId, 1, data);
+            _safeTransferFrom(arts[tokenId].currentOwner, bids[tokenId][currentAuctionNum].currentHighBider, tokenId, 1, data);
         } else {
             require(bids[tokenId][currentAuctionNum].endTime < block.timestamp, "can`t end ongoing time based auction");
-            safeTransferFrom(_currentOwners[tokenId], bids[tokenId][currentAuctionNum].currentHighBider, tokenId, 1, data);
+            _safeTransferFrom(arts[tokenId].currentOwner, bids[tokenId][currentAuctionNum].currentHighBider, tokenId, 1, data);
         }
         bids[tokenId][currentAuctionNum].isFinalized = true;
         emit EndAuction(tokenId, currentAuctionNum, bids[tokenId][currentAuctionNum].currentHighBider, bids[tokenId][currentAuctionNum].currentHigh);
