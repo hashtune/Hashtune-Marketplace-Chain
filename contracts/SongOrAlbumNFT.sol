@@ -57,6 +57,11 @@ contract SongOrAlbumNFT is ERC1155, Ownable, AccessControl {
         require(arts[tokenId].status != DataModel.ArtStatus.forSale, "the art is already up for sale");
         _;
     }
+
+    modifier onlyNotForAuction(uint256 tokenId) {
+        require(arts[tokenId].status != DataModel.ArtStatus.forAuction, "the art is already up for sale");
+        _;
+    }
     
     constructor (string memory uri_, uint256 _hashtuneShare, uint256 _artistRoyalty) ERC1155(uri_) {
         console.log("Deploying a Song or Album Contract with uri:", uri_);
@@ -119,8 +124,8 @@ contract SongOrAlbumNFT is ERC1155, Ownable, AccessControl {
         emit TokenCreated(msg.sender, totalArts, creators, creatorsShare, status, digest, hashFunction, size);
     }
 
-    function setForSale(uint256 tokenId, uint256 salePrice) public onlyNftOwner(tokenId) {
-        require(arts[tokenId].status == DataModel.ArtStatus.idle, "");
+    function setForSale(uint256 tokenId, uint256 salePrice) 
+        public onlyNftOwner(tokenId) onlyNotForSale(tokenId) onlyNotForAuction(tokenId) {
         require(salePrice > 0, "");
         arts[tokenId].status = DataModel.ArtStatus.forSale;
         arts[tokenId].salePrice = salePrice;
