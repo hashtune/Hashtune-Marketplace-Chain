@@ -118,7 +118,7 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
                 sharePercent+=creatorsShare[i];
             }
             require(sharePercent == 100 , "accumulated share should be equal to 100 percent");
-            arts[totalArts++] = DataModel.ArtInfo(
+            arts[++totalArts] = DataModel.ArtInfo(
                 status,
                 msg.sender,
                 creators,
@@ -198,7 +198,7 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
     }
 
     function handlePayment(uint256 tokenId, address payable beneficiary, uint256 amount) private {
-        
+
     }
     
     // set listed? This will cost gas to set but prevents a sale from happening without current owners consent?
