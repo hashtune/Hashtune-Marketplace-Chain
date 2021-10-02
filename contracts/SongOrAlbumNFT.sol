@@ -15,9 +15,9 @@ import "./ArtistControl.sol";
 contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
 
     uint256 totalArts;
-    address hashtuneAddress;
-    uint256 hashtuneShare = 2; //represents 2%
-    uint256 artistRoyalty = 2;
+    address payable hashtuneAddress;
+    uint256 hashtuneSharePercent = 2; //represents 2%
+    uint256 creatorsRoyaltyReservePercent = 2;
     
     //TODO: refactor to use different structure in order to save some storage
     mapping(uint256 => DataModel.ArtInfo) public arts;
@@ -35,7 +35,7 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
     event TokenCreated(
         address by, 
         uint256 tokenId, 
-        address[] creators, 
+        address payable[] creators, 
         uint256[] creatorsShare, 
         DataModel.ArtStatus status, 
         bytes32 digest,
@@ -75,10 +75,10 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
         _;
     }
     
-    constructor (string memory uri_, uint256 _hashtuneShare) ERC1155(uri_) {
+    constructor (string memory uri_, uint256 _hashtuneSharePercent) ERC1155(uri_) {
         console.log("Deploying a Song or Album Contract with uri:", uri_);
-        hashtuneAddress = msg.sender;
-        hashtuneShare = _hashtuneShare; //adding share value at the time of deployment
+        hashtuneAddress = payable(msg.sender);
+        hashtuneSharePercent = _hashtuneSharePercent; //adding share value at the time of deployment
     }
 
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC1155, AccessControl) returns (bool) {
@@ -101,7 +101,7 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
     }
 
     function create(
-        address[] memory creators,
+        address payable[] memory creators,
         uint256[] memory creatorsShare,
         DataModel.ArtStatus status,
         bytes memory data,
@@ -127,7 +127,8 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
                 DataModel.MultiHash(
                     digest,
                     hashFunction,
-                    size));
+                    size),
+                true);
             
             _mint(msg.sender, totalArts, 1, data);
             if(uint8(status) == 1) {
@@ -158,34 +159,36 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
 
             require(arts[tokenId].salePrice == msg.value, "incorrect amount sent");
             arts[tokenId].currentOwner == msg.sender;
+            arts[tokenId].status == DataModel.ArtStatus.idle;
             safeTransferFrom(arts[tokenId].currentOwner, msg.sender, tokenId, 1, "");
+            handlePayment(tokenId, payable(msg.sender), msg.value);
 
-            // Royalty
-            // TODO customize the royalty for each feature
-            // Assuming ether and not wei (10^18 ether)
-            // Need to restrict the number of features
-            uint256 creatorRoyalty = (msg.value * 2) / 100;
-            uint256 _tokenCreatorsLength = _tokenCreators[tokenId].length;
-            for (uint256 i=0; i<_tokenCreatorsLength; i++) {
-                sendTo(payable(_tokenCreators[tokenId][i]), creatorRoyalty);
-            }
-            
-            // Hashtune Cut
-            uint256 platformCut = (msg.value * 2) / 100;
-            sendTo(payable(hashtuneAddress), platformCut);
+        // // Royalty
+        // // TODO customize the royalty for each feature
+        // // Assuming ether and not wei (10^18 ether)
+        // // Need to restrict the number of features
+        // uint256 creatorRoyalty = (msg.value * 2) / 100;
+        // uint256 _tokenCreatorsLength = _tokenCreators[tokenId].length;
+        // for (uint256 i=0; i<_tokenCreatorsLength; i++) {
+        //     sendTo(payable(_tokenCreators[tokenId][i]), creatorRoyalty);
+        // }
+        
+        // // Hashtune Cut
+        // uint256 platformCut = (msg.value * 2) / 100;
+        // sendTo(payable(hashtuneAddress), platformCut);
 
-            // Current Owner
-            // On the first transaction the current owner is the first creator
-            // and thus does not receive a royalty
-            uint256 amount = msg.value - (creatorRoyalty * _tokenCreatorsLength) - platformCut;
-            sendTo(payable(_currentOwners[tokenId]), amount);
-            bytes memory data;
+        // // Current Owner
+        // // On the first transaction the current owner is the first creator
+        // // and thus does not receive a royalty
+        // uint256 amount = msg.value - (creatorRoyalty * _tokenCreatorsLength) - platformCut;
+        // sendTo(payable(_currentOwners[tokenId]), amount);
+        // bytes memory data;
 
-            // Transfer token
-            // Need to actually transfer the contract if using 721Upgradeable (?)
-            safeTransferFrom(_currentOwners[tokenId], msg.sender, tokenId, 1, data);
-            _currentOwners[tokenId] = msg.sender;
-            // Emits a TransferSingle 
+        // // Transfer token
+        // // Need to actually transfer the contract if using 721Upgradeable (?)
+        // safeTransferFrom(_currentOwners[tokenId], msg.sender, tokenId, 1, data);
+        // _currentOwners[tokenId] = msg.sender;
+        // // Emits a TransferSingle 
             emit TokenPurchased(msg.sender, tokenId);
     }
 
@@ -198,7 +201,23 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
     }
 
     function handlePayment(uint256 tokenId, address payable beneficiary, uint256 amount) private {
+        uint256 creatorsShare;
+        uint256 hashtuneShare = amount * hashtuneSharePercent / 100;
 
+        if(arts[tokenId].isFirstTransfer) {
+            creatorsShare = amount * ( 100 - hashtuneSharePercent ) / 100;
+            arts[tokenId].isFirstTransfer = false;
+        } else {
+            creatorsShare = amount * creatorsRoyaltyReservePercent / 100;
+            beneficiary.transfer(amount - hashtuneShare - creatorsShare);
+        }
+
+        hashtuneAddress.transfer(hashtuneShare);
+        
+        for(uint256 i=0; i < arts[tokenId].creators.length; i++) {
+            uint256 creatorShare = (creatorsShare * arts[tokenId].creatorsShare[i]) / 100;
+            arts[tokenId].creators[i].transfer(creatorShare);
+        }
     }
     
     // set listed? This will cost gas to set but prevents a sale from happening without current owners consent?
@@ -269,7 +288,7 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
     function endAuction(uint256 tokenId) public {
         uint256 currentAuctionNum = totalAuctions[tokenId];
         require(_currentOwners[tokenId] == msg.sender, "only owner of the NFT can end the auction");
-         bytes memory data;
+        bytes memory data;
         if(bids[tokenId][currentAuctionNum].endTime == 0) {
             safeTransferFrom(_currentOwners[tokenId], bids[tokenId][currentAuctionNum].currentHighBider, tokenId, 1, data);
         } else {
