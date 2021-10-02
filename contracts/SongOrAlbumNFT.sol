@@ -40,6 +40,7 @@ contract SongOrAlbumNFT is ERC1155, Ownable, AccessControl {
         bytes32 digest,
         uint8 hashFunction,
         uint8 size);
+    event NewSale(uint256 tokenId, uint256 salePrice);
     event TokenPurchased(address by, uint256 tokenId);
     event PayoutOccurred(address to, uint256 amount);
     event NewPrice(address setBy, uint256 newPrice, uint256 tokenId);
@@ -47,6 +48,21 @@ contract SongOrAlbumNFT is ERC1155, Ownable, AccessControl {
     event NewAuction(uint256 tokenId, uint256 auctionNum, uint256 reservePrice, uint256 endTime);
     event EndAuction(uint256 tokenId, uint256 auctionNum, address newOwner, uint256 soldFor);
     event WithdrawMoney(address receiver, uint256 withdrawnAmount);
+
+    modifier onlyNftOwner(uint256 tokenId) {
+        require(arts[tokenId].currentOwner == msg.sender, "you are not the owner of the art");
+        _;
+    }
+
+    modifier onlyNotForSale(uint256 tokenId) {
+        require(arts[tokenId].status != DataModel.ArtStatus.forSale, "the art is already up for sale");
+        _;
+    }
+
+    modifier onlyNotForAuction(uint256 tokenId) {
+        require(arts[tokenId].status != DataModel.ArtStatus.forAuction, "the art is already up for auction");
+        _;
+    }
     
     constructor (string memory uri_, uint256 _hashtuneShare, uint256 _artistRoyalty) ERC1155(uri_) {
         console.log("Deploying a Song or Album Contract with uri:", uri_);
@@ -80,6 +96,7 @@ contract SongOrAlbumNFT is ERC1155, Ownable, AccessControl {
         DataModel.ArtStatus status,
         bytes memory data,
         uint256 salePrice,
+        uint256 reservePrice,
         bytes32 digest,
         uint8 hashFunction,
         uint8 size
@@ -100,13 +117,20 @@ contract SongOrAlbumNFT is ERC1155, Ownable, AccessControl {
         
         _mint(msg.sender, totalArts, 1, data);
         if(uint8(status) == 1) {
-            require(salePrice > 0, "Price should be greater than 0");
-            //TODO create new function to sell art and call it here 
+            setForSale(totalArts, salePrice);
         }
         if(uint8(status) == 2) {
-            //TODO some logic for auction sale
+            startAuction(totalArts, reservePrice);
         }
         emit TokenCreated(msg.sender, totalArts, creators, creatorsShare, status, digest, hashFunction, size);
+    }
+
+    function setForSale(uint256 tokenId, uint256 salePrice) 
+        public onlyNftOwner(tokenId) onlyNotForSale(tokenId) onlyNotForAuction(tokenId) {
+        require(salePrice > 0, "");
+        arts[tokenId].status = DataModel.ArtStatus.forSale;
+        arts[tokenId].salePrice = salePrice;
+        emit NewSale(tokenId, salePrice);
     }
 
     function setApprovalToBuy(address toApprove, uint256 tokenId) public {
