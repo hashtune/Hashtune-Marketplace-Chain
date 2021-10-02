@@ -52,6 +52,11 @@ contract SongOrAlbumNFT is ERC1155, Ownable, AccessControl {
         require(arts[tokenId].currentOwner == msg.sender, "you are not the owner of the art");
         _;
     }
+
+    modifier onlyNotForSale(uint256 tokenId) {
+        require(arts[tokenId].status != DataModel.ArtStatus.forSale, "the art is already up for sale");
+        _;
+    }
     
     constructor (string memory uri_, uint256 _hashtuneShare, uint256 _artistRoyalty) ERC1155(uri_) {
         console.log("Deploying a Song or Album Contract with uri:", uri_);
