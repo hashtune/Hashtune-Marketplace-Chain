@@ -13,11 +13,11 @@ async function main() {
   //User flow for the auction functionalities
   const SongOrAlbum = await hre.ethers.getContractFactory("SongOrAlbumNFT");
   const user: SongOrAlbumNFT = (await SongOrAlbum.deploy(
-    "",2,2
+    "",2,10
   )) as SongOrAlbumNFT;
   await user.deployed();
 
-  user.on("TokenCreated", (by, tokenId, creators, creatorsShare, status, digest, hashFunction, size) => {
+  user.on("TokenCreated", (by, tokenId, creators, creatorsRoyalty, status, digest, hashFunction, size) => {
     console.log(
       "Token created!",
       "By: ",
@@ -27,7 +27,7 @@ async function main() {
       "Createors:",
       creators,
       "Creators Share:",
-      creatorsShare,
+      creatorsRoyalty,
       "Status:",
       status, 
       "Digest:",

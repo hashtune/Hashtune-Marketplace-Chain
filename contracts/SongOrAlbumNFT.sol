@@ -16,8 +16,8 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
 
     uint256 totalArts;
     address payable hashtuneAddress;
-    uint256 hashtuneSharePercent = 2; //represents 2%
-    uint256 creatorsRoyaltyReservePercent = 2;
+    uint256 hashtuneShare = 2; //represents 2%
+    uint256 creatorsRoyaltyReserve = 2;
     
     //TODO: refactor to use different structure in order to save some storage
     mapping(uint256 => DataModel.ArtInfo) public arts;
@@ -31,7 +31,7 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
         address by, 
         uint256 tokenId, 
         address payable[] creators, 
-        uint256[] creatorsShare, 
+        uint256[] creatorsRoyalty, 
         DataModel.ArtStatus status, 
         bytes32 digest,
         uint8 hashFunction,
@@ -70,11 +70,11 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
         _;
     }
     
-    constructor (string memory uri_, uint256 _hashtuneSharePercent, uint256 _creatorsRoyaltyReservePercent) ERC1155(uri_) {
+    constructor (string memory uri_, uint256 _hashtuneShare, uint256 _creatorsRoyaltyReserve) ERC1155(uri_) {
         console.log("Deploying a Song or Album Contract with uri:", uri_);
         hashtuneAddress = payable(msg.sender);
-        hashtuneSharePercent = _hashtuneSharePercent; //adding share value at the time of deployment
-        creatorsRoyaltyReservePercent = _creatorsRoyaltyReservePercent;
+        hashtuneShare = _hashtuneShare; //adding share value at the time of deployment
+        creatorsRoyaltyReserve = _creatorsRoyaltyReserve;
     }
 
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC1155, AccessControl) returns (bool) {
@@ -98,7 +98,7 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
 
     function create(
         address payable[] memory creators,
-        uint256[] memory creatorsShare,
+        uint256[] memory creatorsRoyalty,
         DataModel.ArtStatus status,
         bytes memory data,
         uint256 salePrice,
@@ -108,17 +108,17 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
         uint8 size
         ) public onlyApprovedArtist {
         
-            require(creators.length == creatorsShare.length, "all creators must have shares defined");
+            require(creators.length == creatorsRoyalty.length, "all creators must have shares defined");
             uint256 sharePercent;
-            for(uint256 i=0; i < creatorsShare.length; i++) {
-                sharePercent+=creatorsShare[i];
+            for(uint256 i=0; i < creatorsRoyalty.length; i++) {
+                sharePercent+=creatorsRoyalty[i];
             }
             require(sharePercent == 100 , "accumulated share should be equal to 100 percent");
             arts[++totalArts] = DataModel.ArtInfo(
                 DataModel.ArtStatus.idle,
                 msg.sender,
                 creators,
-                creatorsShare,
+                creatorsRoyalty,
                 salePrice,
                 DataModel.MultiHash(
                     digest,
@@ -133,7 +133,7 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
             if(uint8(status) == 2) {
                 startAuction(totalArts, reservePrice);
             }
-            emit TokenCreated(msg.sender, totalArts, creators, creatorsShare, status, digest, hashFunction, size);
+            emit TokenCreated(msg.sender, totalArts, creators, creatorsRoyalty, status, digest, hashFunction, size);
     }
 
     function setForSale(uint256 tokenId, uint256 salePrice) 
@@ -171,24 +171,17 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
     }
 
     function handlePayment(uint256 tokenId, address payable beneficiary, uint256 amount) private {
-        uint256 creatorsShare;
-        uint256 hashtuneShare = amount * hashtuneSharePercent / 100;
+        uint256 creatorsShare = amount * creatorsRoyaltyReserve / 100;
+        uint256 hashtuneCut = amount * hashtuneShare / 100;
 
-        //handle payment spliting on first sale 
-        if(arts[tokenId].isFirstTransfer) {
-            creatorsShare = amount * ( 100 - hashtuneSharePercent ) / 100;
-            arts[tokenId].isFirstTransfer = false;
-        } else { //royalties after the first sale based on the creatorShare scaled down according to Royalty reserve
-            creatorsShare = amount * creatorsRoyaltyReservePercent / 100;
-            beneficiary.transfer(amount - hashtuneShare - creatorsShare);
-        }
-
-        hashtuneAddress.transfer(hashtuneShare);
+        hashtuneAddress.transfer(hashtuneCut);
         
         for(uint256 i=0; i < arts[tokenId].creators.length; i++) {
             uint256 creatorShare = (creatorsShare * arts[tokenId].creatorsShare[i]) / 100;
             arts[tokenId].creators[i].transfer(creatorShare);
         }
+
+        beneficiary.transfer(amount - creatorsShare - hashtuneCut);
     }
     
     // set listed? This will cost gas to set but prevents a sale from happening without current owners consent?

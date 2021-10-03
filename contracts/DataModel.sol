@@ -25,6 +25,5 @@ library DataModel {
         uint256[] creatorsShare;
         uint256 salePrice;
         MultiHash metaData;
-        bool isFirstTransfer;
     }
 }
