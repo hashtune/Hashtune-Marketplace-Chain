@@ -116,15 +116,14 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
             require(sharePercent == 100 , "accumulated share should be equal to 100 percent");
             arts[++totalArts] = DataModel.ArtInfo(
                 DataModel.ArtStatus.idle,
-                msg.sender,
+                payable(msg.sender),
                 creators,
                 creatorsRoyalty,
                 salePrice,
                 DataModel.MultiHash(
                     digest,
                     hashFunction,
-                    size),
-                true);
+                    size));
             
             _mint(msg.sender, totalArts, 1, data);
             if(uint8(status) == 1) {
@@ -154,10 +153,11 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
         public payable onlyNotNftOwner(tokenId) onlyNotIdle(tokenId) onlyNotForAuction(tokenId) {
 
             require(arts[tokenId].salePrice == msg.value, "incorrect amount sent");
-            arts[tokenId].currentOwner = msg.sender;
-            arts[tokenId].status == DataModel.ArtStatus.idle;
-            _safeTransferFrom(arts[tokenId].currentOwner, msg.sender, tokenId, 1, "");
-            handlePayment(tokenId, payable(msg.sender), msg.value);
+            address payable previousOwner = arts[tokenId].currentOwner;
+            arts[tokenId].currentOwner = payable(msg.sender);
+            arts[tokenId].status = DataModel.ArtStatus.idle;
+            _safeTransferFrom(previousOwner, msg.sender, tokenId, 1, "");
+            handlePayment(tokenId, previousOwner, msg.value);
 
             emit TokenPurchased(msg.sender, tokenId);
     }
