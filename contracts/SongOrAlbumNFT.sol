@@ -151,8 +151,9 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
   
     function buy(uint256 tokenId)  
         public payable onlyNotNftOwner(tokenId) onlyNotIdle(tokenId) onlyNotForAuction(tokenId) {
-
+            
             require(arts[tokenId].salePrice == msg.value, "incorrect amount sent");
+            //always mutate the state first and then do external calls
             address payable previousOwner = arts[tokenId].currentOwner;
             arts[tokenId].currentOwner = payable(msg.sender);
             arts[tokenId].status = DataModel.ArtStatus.idle;
@@ -171,17 +172,17 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
     }
 
     function handlePayment(uint256 tokenId, address payable beneficiary, uint256 amount) private {
-        uint256 creatorsShare = amount * creatorsRoyaltyReserve / 100;
+        uint256 creatorsRoyaltyCut = amount * creatorsRoyaltyReserve / 100;
         uint256 hashtuneCut = amount * hashtuneShare / 100;
 
         hashtuneAddress.transfer(hashtuneCut);
         
         for(uint256 i=0; i < arts[tokenId].creators.length; i++) {
-            uint256 creatorShare = (creatorsShare * arts[tokenId].creatorsShare[i]) / 100;
-            arts[tokenId].creators[i].transfer(creatorShare);
+            uint256 creatorCut = (creatorsRoyaltyCut * arts[tokenId].creatorsRoyalty[i]) / 100;
+            arts[tokenId].creators[i].transfer(creatorCut);
         }
 
-        beneficiary.transfer(amount - creatorsShare - hashtuneCut);
+        beneficiary.transfer(amount - creatorsRoyaltyCut - hashtuneCut);
     }
     
     // set listed? This will cost gas to set but prevents a sale from happening without current owners consent?

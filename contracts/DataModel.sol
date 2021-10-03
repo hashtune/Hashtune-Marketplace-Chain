@@ -22,7 +22,7 @@ library DataModel {
         ArtStatus status;
         address payable currentOwner;
         address payable[] creators;
-        uint256[] creatorsShare;
+        uint256[] creatorsRoyalty;
         uint256 salePrice;
         MultiHash metaData;
     }
