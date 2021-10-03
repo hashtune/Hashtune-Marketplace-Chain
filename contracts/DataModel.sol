@@ -12,7 +12,7 @@ library DataModel {
 
     struct AuctionInfo {
         uint256 currentHigh;
-        address currentHighBider;
+        address payable currentHighBider;
         uint256 endTime;
         uint256 reservePrice;
         bool isFinalized;

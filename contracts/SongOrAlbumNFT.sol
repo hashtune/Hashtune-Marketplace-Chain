@@ -41,7 +41,7 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
     event PayoutOccurred(address to, uint256 amount);
     event NewPrice(address setBy, uint256 newPrice, uint256 tokenId);
     event NewBid(address by, uint256 tokenId, uint256 amount);
-    event NewAuction(uint256 tokenId, uint256 auctionNum, uint256 reservePrice, uint256 endTime);
+    event NewAuction(uint256 tokenId, uint256 auctionNum, uint256 reservePrice);
     event EndAuction(uint256 tokenId, uint256 auctionNum, address newOwner, uint256 soldFor);
     event WithdrawMoney(address receiver, uint256 withdrawnAmount);
 
@@ -158,7 +158,7 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
             arts[tokenId].currentOwner = payable(msg.sender);
             arts[tokenId].status = DataModel.ArtStatus.idle;
             _safeTransferFrom(previousOwner, msg.sender, tokenId, 1, "");
-            handlePayment(tokenId, previousOwner, msg.value);
+            handlePayout(tokenId, previousOwner, msg.value);
 
             emit TokenPurchased(msg.sender, tokenId);
     }
@@ -171,7 +171,7 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
         receiver.transfer(_amount);
     }
 
-    function handlePayment(uint256 tokenId, address payable beneficiary, uint256 amount) private {
+    function handlePayout(uint256 tokenId, address payable beneficiary, uint256 amount) private {
         uint256 creatorsRoyaltyCut = amount * creatorsRoyaltyReserve / 100;
         uint256 hashtuneCut = amount * hashtuneShare / 100;
 
@@ -183,6 +183,14 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
         }
 
         beneficiary.transfer(amount - creatorsRoyaltyCut - hashtuneCut);
+    }
+
+    function handleAuctionPayout(uint256 tokenId, address payable beneficiary) private {
+        uint256 currentAuctionNum = totalAuctions[tokenId];
+        address currentHighBider = bids[tokenId][currentAuctionNum].currentHighBider;
+        require(bidMoneyPool[currentHighBider][tokenId][currentAuctionNum] > 0,"bidpool is empty");
+        bidMoneyPool[currentHighBider][tokenId][currentAuctionNum] = 0;
+        handlePayout(tokenId, beneficiary, bids[tokenId][currentAuctionNum].currentHigh);
     }
     
     // set listed? This will cost gas to set but prevents a sale from happening without current owners consent?
@@ -204,59 +212,53 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
     * If the reserve price set is 0, there is no duration for this auction. 
     * If the reserve price is set > 0, there is a duration for this auction.
      */
-    function startAuction(uint256 tokenId, uint256 reservePrice) public {
-        address currentOwner = arts[tokenId].currentOwner;
-        uint256 previousAuctions = totalAuctions[tokenId];
-        bool wasFinalized = bids[tokenId][previousAuctions].isFinalized;
-        if(previousAuctions > 0) {
-            require(wasFinalized, "previous auction is still on going.");
-        }
-        uint256 endTime = block.timestamp + (24*60*60);
-        require(currentOwner == msg.sender, "can't start the auction of NFT you don't own");
-        uint256 newAuctionNum = totalAuctions[tokenId] += 1;
-        if(reservePrice > 0) {
-            require(endTime > block.timestamp, "auction endtime should be set to future");
-            bids[tokenId][newAuctionNum].endTime = endTime;
-        } else {
-            bids[tokenId][newAuctionNum].endTime = 0;
-        }
-        bids[tokenId][newAuctionNum].reservePrice = reservePrice;
-        bids[tokenId][newAuctionNum].currentHigh = reservePrice;
-        bids[tokenId][newAuctionNum].isFinalized = false;
-        emit NewAuction(tokenId, newAuctionNum, bids[tokenId][newAuctionNum].reservePrice, endTime);
+    function startAuction(uint256 tokenId, uint256 reservePrice) 
+        public onlyNftOwner(tokenId) onlyNotForAuction(tokenId) onlyNotForSale(tokenId) {
+
+            uint256 newAuctionNum = ++totalAuctions[tokenId];
+            arts[tokenId].status = DataModel.ArtStatus.forAuction;
+            bids[tokenId][newAuctionNum].reservePrice = reservePrice;
+            bids[tokenId][newAuctionNum].currentHigh = reservePrice;
+            bids[tokenId][newAuctionNum].isFinalized = false;
+            emit NewAuction(tokenId, newAuctionNum, bids[tokenId][newAuctionNum].reservePrice);
     }
 
-    //TODO: implement safe check for whether NFT is up for auction
-    function placeBid(uint256 tokenId) public payable {
-        uint256 currentAuctionNum = totalAuctions[tokenId];
-        uint256 newBidSum = msg.value + bidMoneyPool[msg.sender][tokenId][currentAuctionNum];
-        uint256 endTime = bids[tokenId][currentAuctionNum].endTime;
-        bool isEnded = bids[tokenId][currentAuctionNum].isFinalized;
-        require(!isEnded, "auction is closed for this NFT");
-        // Auction numbers start at 1 because token Numbers start at 1
-        require(currentAuctionNum > 0, "no ongoing auction for this NFT");
-        if(endTime == 0 || block.timestamp < endTime) {
-            require(msg.value > 0, "bid amount should be greator than 0");
-            require(newBidSum > bids[tokenId][currentAuctionNum].reservePrice, "bid amount should be greator than the reservePrice");
-            require(newBidSum > bids[tokenId][currentAuctionNum].currentHigh, "bid amount should be greator than the current highest");
-            bidMoneyPool[msg.sender][tokenId][currentAuctionNum] += msg.value;
-            bids[tokenId][currentAuctionNum].currentHigh = newBidSum;
-            bids[tokenId][currentAuctionNum].currentHighBider = msg.sender;
-        } else {
-            revert("auction is closed for this NFT");
-        }
-        emit NewBid(msg.sender, tokenId, msg.value);
+    function placeBid(uint256 tokenId) 
+        public payable onlyNotNftOwner(tokenId) onlyNotIdle(tokenId) onlyNotForSale(tokenId) {
+
+            uint256 currentAuctionNum = totalAuctions[tokenId];
+            uint256 newBidSum = msg.value + bidMoneyPool[msg.sender][tokenId][currentAuctionNum];
+            require(newBidSum > bids[tokenId][currentAuctionNum].currentHigh , "bid amount should be greator than the current highest");
+            if(bids[tokenId][currentAuctionNum].reservePrice > 0 && bids[tokenId][currentAuctionNum].endTime == 0) {
+                bids[tokenId][currentAuctionNum].endTime = block.timestamp + 1 days;
+            }
+            uint256 endTime = bids[tokenId][currentAuctionNum].endTime;
+            if(endTime == 0 || block.timestamp < endTime) {
+                bidMoneyPool[msg.sender][tokenId][currentAuctionNum] += msg.value;
+                bids[tokenId][currentAuctionNum].currentHigh = newBidSum;
+                bids[tokenId][currentAuctionNum].currentHighBider = payable(msg.sender);
+            } else {
+                revert("auction is closed for this NFT");
+            }
+            emit NewBid(msg.sender, tokenId, msg.value);
     }
 
     //TODO: implement safe check for whether NFT is up for auction, spliting the royalties, transfering the money
-    function endAuction(uint256 tokenId) public onlyNftOwner(tokenId) {
+    function endAuction(uint256 tokenId) public 
+        onlyNftOwner(tokenId) onlyNotIdle(tokenId) onlyNotForSale(tokenId) {
         uint256 currentAuctionNum = totalAuctions[tokenId];
+        address payable previousOwner = arts[tokenId].currentOwner;
+        arts[tokenId].currentOwner = bids[tokenId][currentAuctionNum].currentHighBider;
         bytes memory data;
+        arts[tokenId].status = DataModel.ArtStatus.idle;
         if(bids[tokenId][currentAuctionNum].endTime == 0) {
-            _safeTransferFrom(arts[tokenId].currentOwner, bids[tokenId][currentAuctionNum].currentHighBider, tokenId, 1, data);
+            _safeTransferFrom(previousOwner, bids[tokenId][currentAuctionNum].currentHighBider, tokenId, 1, data);
+            handleAuctionPayout(tokenId, previousOwner);
+            
         } else {
             require(bids[tokenId][currentAuctionNum].endTime < block.timestamp, "can`t end ongoing time based auction");
-            _safeTransferFrom(arts[tokenId].currentOwner, bids[tokenId][currentAuctionNum].currentHighBider, tokenId, 1, data);
+            _safeTransferFrom(previousOwner, bids[tokenId][currentAuctionNum].currentHighBider, tokenId, 1, data);
+            handleAuctionPayout(tokenId, previousOwner);
         }
         bids[tokenId][currentAuctionNum].isFinalized = true;
         emit EndAuction(tokenId, currentAuctionNum, bids[tokenId][currentAuctionNum].currentHighBider, bids[tokenId][currentAuctionNum].currentHigh);
@@ -264,13 +266,27 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
 
     //lets you withdraw your bid money when the auction is ended.
     //TODO: implement withdraw all the previous money in case the current auction is ongoing
-    function withdrawBidMoney(uint tokenId) public {
+    function withdrawBidMoney(uint256 tokenId) public {
         uint256 currentAuctionNum = totalAuctions[tokenId];
+        require(currentAuctionNum > 0, "no previous auctions happened for this NFT");
+        require(currentAuctionNum != 1 && arts[tokenId].status != DataModel.ArtStatus.forAuction, "First auction is still ongoing");
         uint256 currentAuctionBalance = bidMoneyPool[msg.sender][tokenId][currentAuctionNum];
         bool isFinalized = bids[tokenId][currentAuctionNum].isFinalized;
-        uint256 balance;
+        uint256 balance = bidMoneyPoolCalculator(tokenId, currentAuctionNum, msg.sender);
+        if(arts[tokenId].status != DataModel.ArtStatus.forAuction) {
+            payable(msg.sender).transfer(balance);
+        } else {
+            payable(msg.sender).transfer(balance);
+        }
         if(currentAuctionBalance == 0) {
-            revert("you don't have any money in the bidding pool");
+            balance = bidMoneyPoolCalculator(tokenId, currentAuctionNum < 2 ? 0 : currentAuctionNum - 1 , msg.sender);
+            if(balance > 0) {
+                if(!payable(msg.sender).send(balance)) {
+                    revert("withdrawal unsuccessful");
+                }
+            } else {
+                revert("you don't have any money in the bidding pool");
+            }
         } else {
             require(isFinalized, "can't withdraw money until the auction has ended");
             balance = bidMoneyPoolCalculator(tokenId, currentAuctionNum, msg.sender);
@@ -287,7 +303,7 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
 
     //helper function to save storage
     function bidMoneyPoolCalculator(uint256 tokenId, uint256 toAuctionNum, address bider) private returns (uint256) {
-        require(toAuctionNum > 0, "no previous auctions happened for this NFT");
+        require(toAuctionNum > 0, "you did not take part in previous auction");
         uint256 balance;
         for(uint256 i=1; i <= toAuctionNum; i++) {
                 balance += bidMoneyPool[bider][tokenId][i];
