@@ -185,6 +185,7 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
         beneficiary.transfer(amount - creatorsRoyaltyCut - hashtuneCut);
     }
 
+    //TODO need to fix the logic
     function handleAuctionPayout(uint256 tokenId, address payable beneficiary) private {
         uint256 currentAuctionNum = totalAuctions[tokenId];
         address currentHighBider = bids[tokenId][currentAuctionNum].currentHighBider;
@@ -265,39 +266,24 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
     }
 
     //lets you withdraw your bid money when the auction is ended.
-    //TODO: implement withdraw all the previous money in case the current auction is ongoing
+    //TODO: need to fix some bugs 
     function withdrawBidMoney(uint256 tokenId) public {
         uint256 currentAuctionNum = totalAuctions[tokenId];
         require(currentAuctionNum > 0, "no previous auctions happened for this NFT");
         require(currentAuctionNum != 1 && arts[tokenId].status != DataModel.ArtStatus.forAuction, "First auction is still ongoing");
-        uint256 currentAuctionBalance = bidMoneyPool[msg.sender][tokenId][currentAuctionNum];
-        bool isFinalized = bids[tokenId][currentAuctionNum].isFinalized;
-        uint256 balance = bidMoneyPoolCalculator(tokenId, currentAuctionNum, msg.sender);
-        if(arts[tokenId].status != DataModel.ArtStatus.forAuction) {
-            payable(msg.sender).transfer(balance);
-        } else {
-            payable(msg.sender).transfer(balance);
-        }
-        if(currentAuctionBalance == 0) {
-            balance = bidMoneyPoolCalculator(tokenId, currentAuctionNum < 2 ? 0 : currentAuctionNum - 1 , msg.sender);
-            if(balance > 0) {
-                if(!payable(msg.sender).send(balance)) {
-                    revert("withdrawal unsuccessful");
-                }
-            } else {
-                revert("you don't have any money in the bidding pool");
-            }
-        } else {
-            require(isFinalized, "can't withdraw money until the auction has ended");
+        uint256 balance;
+        if(arts[tokenId].status != DataModel.ArtStatus.forAuction && currentAuctionNum == 1) {
             balance = bidMoneyPoolCalculator(tokenId, currentAuctionNum, msg.sender);
-            if(balance > 0) {
-                if(!payable(msg.sender).send(balance)) {
-                    revert("withdrawal unsuccessful");
-                }
-            } else {
-                revert("you don't have any money in the bidding pool");
-            }
         }
+        if(arts[tokenId].status == DataModel.ArtStatus.forAuction) {
+            balance = bidMoneyPoolCalculator(tokenId, currentAuctionNum - 1 , msg.sender);
+            uint256 currentAuctionBalance = bidMoneyPool[msg.sender][tokenId][currentAuctionNum];
+            require(currentAuctionBalance == 0 || balance > 0, "Can't withdraw money from on going auction");
+        }
+        balance = bidMoneyPoolCalculator(tokenId, currentAuctionNum, msg.sender);
+        require(balance > 0, "you dont have any money in the biding pool");
+        payable(msg.sender).transfer(balance);
+        
         emit WithdrawMoney(msg.sender, balance);
     }
 
