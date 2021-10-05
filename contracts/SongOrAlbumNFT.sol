@@ -220,7 +220,6 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
             arts[tokenId].status = DataModel.ArtStatus.forAuction;
             bids[tokenId][newAuctionNum].reservePrice = reservePrice;
             bids[tokenId][newAuctionNum].currentHigh = reservePrice;
-            bids[tokenId][newAuctionNum].isFinalized = false;
             emit NewAuction(tokenId, newAuctionNum, bids[tokenId][newAuctionNum].reservePrice);
     }
 
@@ -261,7 +260,6 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
             _safeTransferFrom(previousOwner, bids[tokenId][currentAuctionNum].currentHighBider, tokenId, 1, data);
             handleAuctionPayout(tokenId, previousOwner);
         }
-        bids[tokenId][currentAuctionNum].isFinalized = true;
         emit EndAuction(tokenId, currentAuctionNum, bids[tokenId][currentAuctionNum].currentHighBider, bids[tokenId][currentAuctionNum].currentHigh);
     }
 
@@ -270,17 +268,15 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
     function withdrawBidMoney(uint256 tokenId) public {
         uint256 currentAuctionNum = totalAuctions[tokenId];
         require(currentAuctionNum > 0, "no previous auctions happened for this NFT");
-        require(currentAuctionNum != 1 && arts[tokenId].status != DataModel.ArtStatus.forAuction, "First auction is still ongoing");
+        require(currentAuctionNum != 1 || arts[tokenId].status != DataModel.ArtStatus.forAuction, "First auction is still ongoing");
         uint256 balance;
-        if(arts[tokenId].status != DataModel.ArtStatus.forAuction && currentAuctionNum == 1) {
-            balance = bidMoneyPoolCalculator(tokenId, currentAuctionNum, msg.sender);
-        }
         if(arts[tokenId].status == DataModel.ArtStatus.forAuction) {
-            balance = bidMoneyPoolCalculator(tokenId, currentAuctionNum - 1 , msg.sender);
+            balance = bidMoneyPoolCalculator(tokenId, currentAuctionNum - 1, msg.sender);
             uint256 currentAuctionBalance = bidMoneyPool[msg.sender][tokenId][currentAuctionNum];
             require(currentAuctionBalance == 0 || balance > 0, "Can't withdraw money from on going auction");
+        } else {
+            balance = bidMoneyPoolCalculator(tokenId, currentAuctionNum,  msg.sender);
         }
-        balance = bidMoneyPoolCalculator(tokenId, currentAuctionNum, msg.sender);
         require(balance > 0, "you dont have any money in the biding pool");
         payable(msg.sender).transfer(balance);
         

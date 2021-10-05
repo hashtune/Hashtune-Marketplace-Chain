@@ -15,7 +15,6 @@ library DataModel {
         address payable currentHighBider;
         uint256 endTime;
         uint256 reservePrice;
-        bool isFinalized;
     }
 
     struct ArtInfo {

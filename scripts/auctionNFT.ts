@@ -18,18 +18,6 @@ async function main() {
   )) as SongOrAlbumNFT;
   await contract.deployed();
 
-  contract.on("TokenCreated", (by, tokenId, creators) => {
-    console.log(
-      "Token created!",
-      "By: ",
-      by,
-      "Token ID:",
-      tokenId,
-      "Createors:",
-      creators
-    );
-  });
-
   contract.on("NewAuction", (tokenId, auctionNum, targetPrice, endTime) => {
     console.log(
       "New Auction!",
@@ -165,9 +153,9 @@ async function main() {
     (ethers.utils.formatEther(await provider.getBalance(add4))).toString()
 );
 
-  // await contract.withdrawBidMoney(1);
-  // await contract3.withdrawBidMoney(1);
-  // await contract4.withdrawBidMoney(1);
+  await contract.withdrawBidMoney(1);
+  await contract3.withdrawBidMoney(1);
+  await contract4.withdrawBidMoney(1);
 
   //await bider1.withdrawBidMoney(1);
 
