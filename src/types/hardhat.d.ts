@@ -49,6 +49,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IERC165__factory>;
     getContractFactory(
+      name: "ArtistControl",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.ArtistControl__factory>;
+    getContractFactory(
       name: "SongOrAlbumNFT",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.SongOrAlbumNFT__factory>;

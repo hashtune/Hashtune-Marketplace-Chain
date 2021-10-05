@@ -15,19 +15,14 @@ import "./ArtistControl.sol";
 contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
 
     uint256 totalArts;
-    address hashtuneAddress;
+    address payable hashtuneAddress;
     uint256 hashtuneShare = 2; //represents 2%
-    uint256 artistRoyalty = 2;
+    uint256 creatorsRoyaltyReserve = 2;
     
     //TODO: refactor to use different structure in order to save some storage
     mapping(uint256 => DataModel.ArtInfo) public arts;
     mapping(uint256 => mapping(uint256 => DataModel.AuctionInfo)) public bids;
     mapping(address => mapping(uint256 => mapping(uint256 => uint256))) public bidMoneyPool;
-    mapping(uint256 => uint256) public _prices;
-    mapping(uint256 => address[]) private _tokenCreators;
-    mapping(uint256 => address) private _currentOwners;
-    mapping(uint256 => bool) public _listings;
-
     mapping(uint256 => uint256) public totalAuctions; // alternative to mapping array of struct 
 
     // Custom Events
@@ -35,8 +30,8 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
     event TokenCreated(
         address by, 
         uint256 tokenId, 
-        address[] creators, 
-        uint256[] creatorsShare, 
+        address payable[] creators, 
+        uint256[] creatorsRoyalty, 
         DataModel.ArtStatus status, 
         bytes32 digest,
         uint8 hashFunction,
@@ -55,6 +50,16 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
         _;
     }
 
+    modifier onlyNotNftOwner(uint256 tokenId) {
+        require(arts[tokenId].currentOwner != msg.sender, "you can't bid on or buy your own NFT");
+        _;
+    }
+
+    modifier onlyNotIdle(uint256 tokenId) {
+        require(arts[tokenId].status != DataModel.ArtStatus.idle, "the art is not availble for sale or auction");
+        _;
+    }
+
     modifier onlyNotForSale(uint256 tokenId) {
         require(arts[tokenId].status != DataModel.ArtStatus.forSale, "the art is already up for sale");
         _;
@@ -65,11 +70,11 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
         _;
     }
     
-    constructor (string memory uri_, uint256 _hashtuneShare, uint256 _artistRoyalty) ERC1155(uri_) {
+    constructor (string memory uri_, uint256 _hashtuneShare, uint256 _creatorsRoyaltyReserve) ERC1155(uri_) {
         console.log("Deploying a Song or Album Contract with uri:", uri_);
-        hashtuneAddress = msg.sender;
+        hashtuneAddress = payable(msg.sender);
         hashtuneShare = _hashtuneShare; //adding share value at the time of deployment
-        artistRoyalty = _artistRoyalty;
+        creatorsRoyaltyReserve = _creatorsRoyaltyReserve;
     }
 
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC1155, AccessControl) returns (bool) {
@@ -88,12 +93,12 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
     }
 
     function showSalePriceFor(uint256 id) public view returns (uint256) {
-        return _prices[id];
+        //return _prices[id];
     }
 
     function create(
-        address[] memory creators,
-        uint256[] memory creatorsShare,
+        address payable[] memory creators,
+        uint256[] memory creatorsRoyalty,
         DataModel.ArtStatus status,
         bytes memory data,
         uint256 salePrice,
@@ -103,76 +108,59 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
         uint8 size
         ) public onlyApprovedArtist {
         
-        require(creators.length == creatorsShare.length, "all creators must have shares defined");
-        
-        arts[totalArts++] = DataModel.ArtInfo(
-            status,
-            msg.sender,
-            creators,
-            creatorsShare,
-            salePrice,
-            DataModel.MultiHash(
-                digest,
-                hashFunction,
-                size));
-        
-        _mint(msg.sender, totalArts, 1, data);
-        if(uint8(status) == 1) {
-            setForSale(totalArts, salePrice);
-        }
-        if(uint8(status) == 2) {
-            startAuction(totalArts, reservePrice);
-        }
-        emit TokenCreated(msg.sender, totalArts, creators, creatorsShare, status, digest, hashFunction, size);
+            require(creators.length == creatorsRoyalty.length, "all creators must have shares defined");
+            uint256 sharePercent;
+            for(uint256 i=0; i < creatorsRoyalty.length; i++) {
+                sharePercent+=creatorsRoyalty[i];
+            }
+            require(sharePercent == 100 , "accumulated share should be equal to 100 percent");
+            arts[++totalArts] = DataModel.ArtInfo(
+                DataModel.ArtStatus.idle,
+                payable(msg.sender),
+                creators,
+                creatorsRoyalty,
+                salePrice,
+                DataModel.MultiHash(
+                    digest,
+                    hashFunction,
+                    size));
+            
+            _mint(msg.sender, totalArts, 1, data);
+            if(uint8(status) == 1) {
+                setForSale(totalArts, salePrice);
+            }
+            if(uint8(status) == 2) {
+                startAuction(totalArts, reservePrice);
+            }
+            emit TokenCreated(msg.sender, totalArts, creators, creatorsRoyalty, status, digest, hashFunction, size);
     }
 
     function setForSale(uint256 tokenId, uint256 salePrice) 
         public onlyNftOwner(tokenId) onlyNotForSale(tokenId) onlyNotForAuction(tokenId) {
-        require(salePrice > 0, "");
-        arts[tokenId].status = DataModel.ArtStatus.forSale;
-        arts[tokenId].salePrice = salePrice;
-        emit NewSale(tokenId, salePrice);
+            require(salePrice > 0, "");
+            arts[tokenId].status = DataModel.ArtStatus.forSale;
+            arts[tokenId].salePrice = salePrice;
+            emit NewSale(tokenId, salePrice);
     }
 
     function setApprovalToBuy(address toApprove, uint256 tokenId) public {
         // Emits setApprovalForAll
-        require(_currentOwners[tokenId] == msg.sender, "cannot set approval if not token owner");
+        require(arts[tokenId].currentOwner == msg.sender, "cannot set approval if not token owner");
         return setApprovalForAll(toApprove, true);
     }
   
-    function buy(uint256 tokenId) public payable {
-        // Emits a TransferSingle 
-        emit TokenPurchased(msg.sender, tokenId);
-        uint256 price = showSalePriceFor(tokenId);
-        require(msg.value == price, "incorrect amount sent");
-        //require(_listings[tokenId] == true, "art piece not for sale"); only makes sense if theres one
-        require(msg.sender != address(0) && msg.sender != address(this), "cannot buy your own token");
+    function buy(uint256 tokenId)  
+        public payable onlyNotNftOwner(tokenId) onlyNotIdle(tokenId) onlyNotForAuction(tokenId) {
+            
+            require(arts[tokenId].salePrice == msg.value, "incorrect amount sent");
+            //always mutate the state first and then do external calls
+            address payable previousOwner = arts[tokenId].currentOwner;
+            arts[tokenId].currentOwner = payable(msg.sender);
+            arts[tokenId].status = DataModel.ArtStatus.idle;
+            _safeTransferFrom(previousOwner, msg.sender, tokenId, 1, "");
+            handlePayment(tokenId, previousOwner, msg.value);
 
-        // Royalty
-        // TODO customize the royalty for each feature
-        // Assuming ether and not wei (10^18 ether)
-        // Need to restrict the number of features
-        uint256 creatorRoyalty = (msg.value * 2) / 100;
-        uint256 _tokenCreatorsLength = _tokenCreators[tokenId].length;
-        for (uint256 i=0; i<_tokenCreatorsLength; i++) {
-            sendTo(payable(_tokenCreators[tokenId][i]), creatorRoyalty);
-        }
-        
-        // Hashtune Cut
-        uint256 platformCut = (msg.value * 2) / 100;
-        sendTo(payable(hashtuneAddress), platformCut);
-
-        // Current Owner
-        // On the first transaction the current owner is the first creator
-        // and thus does not receive a royalty
-        uint256 amount = msg.value - (creatorRoyalty * _tokenCreatorsLength) - platformCut;
-        sendTo(payable(_currentOwners[tokenId]), amount);
-        bytes memory data;
-
-        // Transfer token
-        // Need to actually transfer the contract if using 721Upgradeable (?)
-        safeTransferFrom(_currentOwners[tokenId], msg.sender, tokenId, 1, data);
-        _currentOwners[tokenId] = msg.sender;
+            emit TokenPurchased(msg.sender, tokenId);
     }
 
     function sendTo(address payable receiver, uint256 _amount) private {
@@ -182,19 +170,32 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
         require(_amount > 0 && _amount <= address(this).balance, "amount is less than contract balance");
         receiver.transfer(_amount);
     }
+
+    function handlePayment(uint256 tokenId, address payable beneficiary, uint256 amount) private {
+        uint256 creatorsRoyaltyCut = amount * creatorsRoyaltyReserve / 100;
+        uint256 hashtuneCut = amount * hashtuneShare / 100;
+
+        hashtuneAddress.transfer(hashtuneCut);
+        
+        for(uint256 i=0; i < arts[tokenId].creators.length; i++) {
+            uint256 creatorCut = (creatorsRoyaltyCut * arts[tokenId].creatorsRoyalty[i]) / 100;
+            arts[tokenId].creators[i].transfer(creatorCut);
+        }
+
+        beneficiary.transfer(amount - creatorsRoyaltyCut - hashtuneCut);
+    }
     
     // set listed? This will cost gas to set but prevents a sale from happening without current owners consent?
     function getCurrentOwner(uint256 tokenId) view public returns (address) {
-        return _currentOwners[tokenId];
+        return arts[tokenId].currentOwner;
     }
 
     // Set current price and buy could have a race condition, make sure you 
     // TODO: disable purchase while updating prices by pausing contract first then unpausing
-    function setCurrentPrice(uint256 newPrice, uint256 tokenId) public  {
+    function setCurrentPrice(uint256 newPrice, uint256 tokenId) public onlyNftOwner(tokenId)  {
         emit NewPrice(msg.sender, newPrice, tokenId);
-        require(msg.sender == _currentOwners[tokenId], "cannot set the price for a token you don't currently own");
         require(newPrice > 0, "cannot set the new price of the token to zero");
-        _prices[tokenId] = newPrice;
+        //_prices[tokenId] = newPrice;
     }
 
     //Start the Auction on limeted time based model or without time contraint
@@ -204,7 +205,7 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
     * If the reserve price is set > 0, there is a duration for this auction.
      */
     function startAuction(uint256 tokenId, uint256 reservePrice) public {
-        address currentOwner = _currentOwners[tokenId];
+        address currentOwner = arts[tokenId].currentOwner;
         uint256 previousAuctions = totalAuctions[tokenId];
         bool wasFinalized = bids[tokenId][previousAuctions].isFinalized;
         if(previousAuctions > 0) {
@@ -248,15 +249,14 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
     }
 
     //TODO: implement safe check for whether NFT is up for auction, spliting the royalties, transfering the money
-    function endAuction(uint256 tokenId) public {
+    function endAuction(uint256 tokenId) public onlyNftOwner(tokenId) {
         uint256 currentAuctionNum = totalAuctions[tokenId];
-        require(_currentOwners[tokenId] == msg.sender, "only owner of the NFT can end the auction");
-         bytes memory data;
+        bytes memory data;
         if(bids[tokenId][currentAuctionNum].endTime == 0) {
-            safeTransferFrom(_currentOwners[tokenId], bids[tokenId][currentAuctionNum].currentHighBider, tokenId, 1, data);
+            _safeTransferFrom(arts[tokenId].currentOwner, bids[tokenId][currentAuctionNum].currentHighBider, tokenId, 1, data);
         } else {
             require(bids[tokenId][currentAuctionNum].endTime < block.timestamp, "can`t end ongoing time based auction");
-            safeTransferFrom(_currentOwners[tokenId], bids[tokenId][currentAuctionNum].currentHighBider, tokenId, 1, data);
+            _safeTransferFrom(arts[tokenId].currentOwner, bids[tokenId][currentAuctionNum].currentHighBider, tokenId, 1, data);
         }
         bids[tokenId][currentAuctionNum].isFinalized = true;
         emit EndAuction(tokenId, currentAuctionNum, bids[tokenId][currentAuctionNum].currentHighBider, bids[tokenId][currentAuctionNum].currentHigh);

@@ -20,9 +20,9 @@ library DataModel {
 
     struct ArtInfo {
         ArtStatus status;
-        address currentOwner;
-        address[] creators;
-        uint256[] creatorsShare;
+        address payable currentOwner;
+        address payable[] creators;
+        uint256[] creatorsRoyalty;
         uint256 salePrice;
         MultiHash metaData;
     }
