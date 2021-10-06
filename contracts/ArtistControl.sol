@@ -22,8 +22,8 @@ contract ArtistControl is Ownable {
     }
 
     function approveArtistBatch(address[] memory artists) public onlyOwner {
-        for(uint i= 0; i < artists.length; i++) {
-            approvedArtists[artists[i]]= true;
+        for(uint i = 0; i < artists.length; i++) {
+            approvedArtists[artists[i]] = true;
         }
         emit ArtistBatchApproved(artists);
     }
@@ -34,9 +34,9 @@ contract ArtistControl is Ownable {
     }
 
     function revokeArtistBatchApproval(address[] memory artists) public onlyOwner {
-        for(uint i= 0; i < artists.length; i++) {
-            approvedArtists[artists[i]]= false;
+        for(uint i = 0; i < artists.length; i++) {
+            approvedArtists[artists[i]] = false;
         }
         emit ArtistBatchApprovalRevoked(artists);
-    } 
+    }
 }
