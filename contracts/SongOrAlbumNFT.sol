@@ -18,30 +18,30 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
     address payable hashtuneAddress;
     uint256 hashtuneShare = 2; //represents 2%
     uint256 creatorsRoyaltyReserve = 2;
-    
-    //TODO: refactor to use different structure in order to save some storage
-    mapping(uint256 => DataModel.ArtInfo) public arts;
-    mapping(uint256 => mapping(uint256 => DataModel.AuctionInfo)) public bids;
-    mapping(address => mapping(uint256 => mapping(uint256 => uint256))) public bidMoneyPool;
-    mapping(uint256 => uint256) public totalAuctions; // alternative to mapping array of struct 
+
+    mapping(uint256 => DataModel.ArtInfo) public arts; // maps tokenId to artInfo
+    mapping(uint256 => mapping(uint256 => DataModel.AuctionInfo)) public bids; //maps tokenId to auctionId to auctionInfo
+    mapping(address => mapping(uint256 => mapping(uint256 => uint256))) public bidMoneyPool; //maps userAddress to tokenId to auctionId to money
+    mapping(uint256 => uint256) public totalAuctions; // maps tokenId to numOfAuctions
 
     // Custom Events
     event NewURI(address setBy, string newAddress);
     event TokenCreated(
-        address by, 
-        uint256 tokenId, 
-        address payable[] creators, 
-        uint256[] creatorsRoyalty, 
-        DataModel.ArtStatus status, 
+        address by,
+        uint256 tokenId,
+        address payable[] creators,
+        uint256[] creatorsRoyalty,
+        DataModel.ArtStatus status,
         bytes32 digest,
         uint8 hashFunction,
-        uint8 size);
+        uint8 size
+    );
     event NewSale(uint256 tokenId, uint256 salePrice);
     event TokenPurchased(address by, uint256 tokenId);
     event PayoutOccurred(address to, uint256 amount);
     event NewPrice(address setBy, uint256 newPrice, uint256 tokenId);
     event NewBid(address by, uint256 tokenId, uint256 amount);
-    event NewAuction(uint256 tokenId, uint256 auctionNum, uint256 reservePrice, uint256 endTime);
+    event NewAuction(uint256 tokenId, uint256 auctionNum, uint256 reservePrice);
     event EndAuction(uint256 tokenId, uint256 auctionNum, address newOwner, uint256 soldFor);
     event WithdrawMoney(address receiver, uint256 withdrawnAmount);
 
@@ -69,7 +69,7 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
         require(arts[tokenId].status != DataModel.ArtStatus.forAuction, "the art is already up for auction");
         _;
     }
-    
+
     constructor (string memory uri_, uint256 _hashtuneShare, uint256 _creatorsRoyaltyReserve) ERC1155(uri_) {
         console.log("Deploying a Song or Album Contract with uri:", uri_);
         hashtuneAddress = payable(msg.sender);
@@ -79,21 +79,6 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
 
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC1155, AccessControl) returns (bool) {
         return super.supportsInterface(interfaceId);
-    }
-    
-    // Example of such a URI: https://token-cdn-domain/{id}.json would be replaced with https://token-cdn-domain/000000000000000000000000000000000000000000000000000000000004cce0.json if the client is referring to token ID 314592/0x4CCE0.
-    function setURI(string memory newuri) public onlyOwner {
-        emit NewURI(msg.sender, newuri);
-        _setURI(newuri);
-    }
-
-    // One URI for all tokens
-    function showURI(uint256 id) public view returns (string memory) {
-        return uri(id);
-    }
-
-    function showSalePriceFor(uint256 id) public view returns (uint256) {
-        //return _prices[id];
     }
 
     function create(
@@ -107,191 +92,151 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
         uint8 hashFunction,
         uint8 size
         ) public onlyApprovedArtist {
-        
-            require(creators.length == creatorsRoyalty.length, "all creators must have shares defined");
-            uint256 sharePercent;
-            for(uint256 i=0; i < creatorsRoyalty.length; i++) {
-                sharePercent+=creatorsRoyalty[i];
-            }
-            require(sharePercent == 100 , "accumulated share should be equal to 100 percent");
-            arts[++totalArts] = DataModel.ArtInfo(
-                DataModel.ArtStatus.idle,
-                payable(msg.sender),
-                creators,
-                creatorsRoyalty,
-                salePrice,
-                DataModel.MultiHash(
-                    digest,
-                    hashFunction,
-                    size));
-            
-            _mint(msg.sender, totalArts, 1, data);
-            if(uint8(status) == 1) {
-                setForSale(totalArts, salePrice);
-            }
-            if(uint8(status) == 2) {
-                startAuction(totalArts, reservePrice);
-            }
-            emit TokenCreated(msg.sender, totalArts, creators, creatorsRoyalty, status, digest, hashFunction, size);
+        require(creators.length == creatorsRoyalty.length, "all creators must have shares defined");
+        uint256 sharePercent;
+        for(uint256 i = 0; i < creatorsRoyalty.length; i++) {
+            sharePercent += creatorsRoyalty[i];
+        }
+        require(sharePercent == 100, "accumulated share should be equal to 100 percent");
+        arts[++totalArts] = DataModel.ArtInfo(
+            DataModel.ArtStatus.idle,
+            payable(msg.sender),
+            creators,
+            creatorsRoyalty,
+            salePrice,
+            DataModel.MultiHash(digest, hashFunction, size));
+        _mint(msg.sender, totalArts, 1, data);
+        if(uint8(status) == 1) {
+            setForSale(totalArts, salePrice);
+        }
+        if(uint8(status) == 2) {
+            startAuction(totalArts, reservePrice);
+        }
+        emit TokenCreated(msg.sender, totalArts, creators, creatorsRoyalty, status, digest, hashFunction, size);
     }
-
-    function setForSale(uint256 tokenId, uint256 salePrice) 
+    function setForSale(uint256 tokenId, uint256 salePrice)
         public onlyNftOwner(tokenId) onlyNotForSale(tokenId) onlyNotForAuction(tokenId) {
-            require(salePrice > 0, "");
-            arts[tokenId].status = DataModel.ArtStatus.forSale;
-            arts[tokenId].salePrice = salePrice;
-            emit NewSale(tokenId, salePrice);
+        require(salePrice > 0, "Sale price should be greater than 0");
+        arts[tokenId].status = DataModel.ArtStatus.forSale;
+        arts[tokenId].salePrice = salePrice;
+        emit NewSale(tokenId, salePrice);
     }
 
-    function setApprovalToBuy(address toApprove, uint256 tokenId) public {
-        // Emits setApprovalForAll
-        require(arts[tokenId].currentOwner == msg.sender, "cannot set approval if not token owner");
-        return setApprovalForAll(toApprove, true);
-    }
-  
-    function buy(uint256 tokenId)  
+    function buy(uint256 tokenId)
         public payable onlyNotNftOwner(tokenId) onlyNotIdle(tokenId) onlyNotForAuction(tokenId) {
-            
-            require(arts[tokenId].salePrice == msg.value, "incorrect amount sent");
-            //always mutate the state first and then do external calls
-            address payable previousOwner = arts[tokenId].currentOwner;
-            arts[tokenId].currentOwner = payable(msg.sender);
-            arts[tokenId].status = DataModel.ArtStatus.idle;
-            _safeTransferFrom(previousOwner, msg.sender, tokenId, 1, "");
-            handlePayment(tokenId, previousOwner, msg.value);
+        require(arts[tokenId].salePrice == msg.value, "incorrect amount sent");
+        //always mutate the state first and then do external calls
+        address payable previousOwner = arts[tokenId].currentOwner;
+        arts[tokenId].currentOwner = payable(msg.sender);
+        arts[tokenId].status = DataModel.ArtStatus.idle;
+        _safeTransferFrom(previousOwner, msg.sender, tokenId, 1, "");
+        handlePayout(tokenId, previousOwner, msg.value);
 
-            emit TokenPurchased(msg.sender, tokenId);
+        emit TokenPurchased(msg.sender, tokenId);
     }
 
-    function sendTo(address payable receiver, uint256 _amount) private {
-        // Not sure if this emits a default transfer event?
-        emit PayoutOccurred(receiver, _amount);
-        require(receiver != address(0) && receiver != address(this), "receiver is contract address owner");
-        require(_amount > 0 && _amount <= address(this).balance, "amount is less than contract balance");
-        receiver.transfer(_amount);
-    }
-
-    function handlePayment(uint256 tokenId, address payable beneficiary, uint256 amount) private {
+    // handles the payment distribution on a sale
+    function handlePayout(uint256 tokenId, address payable beneficiary, uint256 amount) private {
         uint256 creatorsRoyaltyCut = amount * creatorsRoyaltyReserve / 100;
         uint256 hashtuneCut = amount * hashtuneShare / 100;
 
         hashtuneAddress.transfer(hashtuneCut);
-        
-        for(uint256 i=0; i < arts[tokenId].creators.length; i++) {
+        for(uint256 i = 0; i < arts[tokenId].creators.length; i++) {
             uint256 creatorCut = (creatorsRoyaltyCut * arts[tokenId].creatorsRoyalty[i]) / 100;
             arts[tokenId].creators[i].transfer(creatorCut);
         }
 
         beneficiary.transfer(amount - creatorsRoyaltyCut - hashtuneCut);
     }
-    
-    // set listed? This will cost gas to set but prevents a sale from happening without current owners consent?
-    function getCurrentOwner(uint256 tokenId) view public returns (address) {
-        return arts[tokenId].currentOwner;
-    }
 
-    // Set current price and buy could have a race condition, make sure you 
-    // TODO: disable purchase while updating prices by pausing contract first then unpausing
-    function setCurrentPrice(uint256 newPrice, uint256 tokenId) public onlyNftOwner(tokenId)  {
-        emit NewPrice(msg.sender, newPrice, tokenId);
-        require(newPrice > 0, "cannot set the new price of the token to zero");
-        //_prices[tokenId] = newPrice;
-    }
+    function startAuction(uint256 tokenId, uint256 reservePrice)
+        public onlyNftOwner(tokenId) onlyNotForAuction(tokenId) onlyNotForSale(tokenId) {
 
-    //Start the Auction on limeted time based model or without time contraint
-    // TODO: implementing the limited time based auction model
-    /** 
-    * If the reserve price set is 0, there is no duration for this auction. 
-    * If the reserve price is set > 0, there is a duration for this auction.
-     */
-    function startAuction(uint256 tokenId, uint256 reservePrice) public {
-        address currentOwner = arts[tokenId].currentOwner;
-        uint256 previousAuctions = totalAuctions[tokenId];
-        bool wasFinalized = bids[tokenId][previousAuctions].isFinalized;
-        if(previousAuctions > 0) {
-            require(wasFinalized, "previous auction is still on going.");
-        }
-        uint256 endTime = block.timestamp + (24*60*60);
-        require(currentOwner == msg.sender, "can't start the auction of NFT you don't own");
-        uint256 newAuctionNum = totalAuctions[tokenId] += 1;
-        if(reservePrice > 0) {
-            require(endTime > block.timestamp, "auction endtime should be set to future");
-            bids[tokenId][newAuctionNum].endTime = endTime;
-        } else {
-            bids[tokenId][newAuctionNum].endTime = 0;
-        }
+        uint256 newAuctionNum = ++totalAuctions[tokenId];
+        arts[tokenId].status = DataModel.ArtStatus.forAuction;
         bids[tokenId][newAuctionNum].reservePrice = reservePrice;
         bids[tokenId][newAuctionNum].currentHigh = reservePrice;
-        bids[tokenId][newAuctionNum].isFinalized = false;
-        emit NewAuction(tokenId, newAuctionNum, bids[tokenId][newAuctionNum].reservePrice, endTime);
+        emit NewAuction(tokenId, newAuctionNum, bids[tokenId][newAuctionNum].reservePrice);
     }
 
-    //TODO: implement safe check for whether NFT is up for auction
-    function placeBid(uint256 tokenId) public payable {
+    function placeBid(uint256 tokenId)
+        public payable onlyNotNftOwner(tokenId) onlyNotIdle(tokenId) onlyNotForSale(tokenId) {
+
         uint256 currentAuctionNum = totalAuctions[tokenId];
         uint256 newBidSum = msg.value + bidMoneyPool[msg.sender][tokenId][currentAuctionNum];
+        require(newBidSum > bids[tokenId][currentAuctionNum].currentHigh, "bid amount should be greator than the current highest");
+        if(bids[tokenId][currentAuctionNum].reservePrice > 0 && bids[tokenId][currentAuctionNum].endTime == 0) {
+            bids[tokenId][currentAuctionNum].endTime = block.timestamp + 1 days;
+        }
         uint256 endTime = bids[tokenId][currentAuctionNum].endTime;
-        bool isEnded = bids[tokenId][currentAuctionNum].isFinalized;
-        require(!isEnded, "auction is closed for this NFT");
-        // Auction numbers start at 1 because token Numbers start at 1
-        require(currentAuctionNum > 0, "no ongoing auction for this NFT");
         if(endTime == 0 || block.timestamp < endTime) {
-            require(msg.value > 0, "bid amount should be greator than 0");
-            require(newBidSum > bids[tokenId][currentAuctionNum].reservePrice, "bid amount should be greator than the reservePrice");
-            require(newBidSum > bids[tokenId][currentAuctionNum].currentHigh, "bid amount should be greator than the current highest");
             bidMoneyPool[msg.sender][tokenId][currentAuctionNum] += msg.value;
             bids[tokenId][currentAuctionNum].currentHigh = newBidSum;
-            bids[tokenId][currentAuctionNum].currentHighBider = msg.sender;
+            bids[tokenId][currentAuctionNum].currentHighBider = payable(msg.sender);
         } else {
             revert("auction is closed for this NFT");
         }
         emit NewBid(msg.sender, tokenId, msg.value);
     }
 
-    //TODO: implement safe check for whether NFT is up for auction, spliting the royalties, transfering the money
-    function endAuction(uint256 tokenId) public onlyNftOwner(tokenId) {
+
+    function endAuction(uint256 tokenId) public
+        onlyNftOwner(tokenId) onlyNotIdle(tokenId) onlyNotForSale(tokenId) {
         uint256 currentAuctionNum = totalAuctions[tokenId];
+        address payable previousOwner = arts[tokenId].currentOwner;
+        arts[tokenId].currentOwner = bids[tokenId][currentAuctionNum].currentHighBider;
         bytes memory data;
+        arts[tokenId].status = DataModel.ArtStatus.idle;
         if(bids[tokenId][currentAuctionNum].endTime == 0) {
-            _safeTransferFrom(arts[tokenId].currentOwner, bids[tokenId][currentAuctionNum].currentHighBider, tokenId, 1, data);
+            _safeTransferFrom(previousOwner, bids[tokenId][currentAuctionNum].currentHighBider, tokenId, 1, data);
+            handleAuctionPayout(tokenId, previousOwner);
         } else {
             require(bids[tokenId][currentAuctionNum].endTime < block.timestamp, "can`t end ongoing time based auction");
-            _safeTransferFrom(arts[tokenId].currentOwner, bids[tokenId][currentAuctionNum].currentHighBider, tokenId, 1, data);
+            _safeTransferFrom(previousOwner, bids[tokenId][currentAuctionNum].currentHighBider, tokenId, 1, data);
+            handleAuctionPayout(tokenId, previousOwner);
         }
-        bids[tokenId][currentAuctionNum].isFinalized = true;
-        emit EndAuction(tokenId, currentAuctionNum, bids[tokenId][currentAuctionNum].currentHighBider, bids[tokenId][currentAuctionNum].currentHigh);
+        emit EndAuction(
+            tokenId,
+            currentAuctionNum,
+            bids[tokenId][currentAuctionNum].currentHighBider,
+            bids[tokenId][currentAuctionNum].currentHigh
+        );
+    }
+
+    // handle the payment distribution on auctions
+    function handleAuctionPayout(uint256 tokenId, address payable beneficiary) private {
+        uint256 currentAuctionNum = totalAuctions[tokenId];
+        address currentHighBider = bids[tokenId][currentAuctionNum].currentHighBider;
+        require(bidMoneyPool[currentHighBider][tokenId][currentAuctionNum] > 0,"bidpool is empty");
+        bidMoneyPool[currentHighBider][tokenId][currentAuctionNum] = 0;
+        handlePayout(tokenId, beneficiary, bids[tokenId][currentAuctionNum].currentHigh);
     }
 
     //lets you withdraw your bid money when the auction is ended.
-    //TODO: implement withdraw all the previous money in case the current auction is ongoing
-    function withdrawBidMoney(uint tokenId) public {
+    function withdrawBidMoney(uint256 tokenId) public {
         uint256 currentAuctionNum = totalAuctions[tokenId];
-        uint256 currentAuctionBalance = bidMoneyPool[msg.sender][tokenId][currentAuctionNum];
-        bool isFinalized = bids[tokenId][currentAuctionNum].isFinalized;
+        require(currentAuctionNum > 0, "no previous auctions happened for this NFT");
+        require(currentAuctionNum != 1 || arts[tokenId].status != DataModel.ArtStatus.forAuction, "First auction is still ongoing");
         uint256 balance;
-        if(currentAuctionBalance == 0) {
-            revert("you don't have any money in the bidding pool");
+        if(arts[tokenId].status == DataModel.ArtStatus.forAuction) {
+            balance = bidMoneyPoolCalculator(tokenId, currentAuctionNum - 1, msg.sender);
+            uint256 currentAuctionBalance = bidMoneyPool[msg.sender][tokenId][currentAuctionNum];
+            require(currentAuctionBalance == 0 || balance > 0, "Can't withdraw money from on going auction");
         } else {
-            require(isFinalized, "can't withdraw money until the auction has ended");
-            balance = bidMoneyPoolCalculator(tokenId, currentAuctionNum, msg.sender);
-            if(balance > 0) {
-                if(!payable(msg.sender).send(balance)) {
-                    revert("withdrawal unsuccessful");
-                }
-            } else {
-                revert("you don't have any money in the bidding pool");
-            }
+            balance = bidMoneyPoolCalculator(tokenId, currentAuctionNum,  msg.sender);
         }
+        require(balance > 0, "you dont have any money in the biding pool");
+        payable(msg.sender).transfer(balance);
+
         emit WithdrawMoney(msg.sender, balance);
     }
 
     //helper function to save storage
     function bidMoneyPoolCalculator(uint256 tokenId, uint256 toAuctionNum, address bider) private returns (uint256) {
-        require(toAuctionNum > 0, "no previous auctions happened for this NFT");
         uint256 balance;
-        for(uint256 i=1; i <= toAuctionNum; i++) {
-                balance += bidMoneyPool[bider][tokenId][i];
-                bidMoneyPool[bider][tokenId][i] = 0;
+        for(uint256 i = 1; i <= toAuctionNum; i++) {
+            balance += bidMoneyPool[bider][tokenId][i];
+            bidMoneyPool[bider][tokenId][i] = 0;
         }
         return balance;
     }
