@@ -42,7 +42,6 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
     event NewSale(uint256 tokenId, uint256 salePrice);
     event TokenPurchased(address by, uint256 tokenId);
     event PayoutOccurred(address to, uint256 amount);
-    event NewPrice(address setBy, uint256 newPrice, uint256 tokenId);
     event NewBid(address by, uint256 tokenId, uint256 amount);
     event NewAuction(uint256 tokenId, uint256 auctionNum, uint256 reservePrice);
     event EndAuction(uint256 tokenId, uint256 auctionNum, address newOwner, uint256 soldFor);
@@ -221,7 +220,7 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
     * @param tokenId unique ID of the NFT
     */
     function placeBid(uint256 tokenId)
-        public payable onlyNotNftOwner(tokenId) onlyNotIdle(tokenId) onlyNotForSale(tokenId) {
+        public payable onlyNotIdle(tokenId) onlyNotNftOwner(tokenId) onlyNotForSale(tokenId) {
 
         require(msg.value > 0, "bid amount should be greater than zero");
         uint256 currentAuctionNum = totalAuctions[tokenId];
@@ -261,8 +260,12 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
         bytes memory data;
         arts[tokenId].status = DataModel.ArtStatus.idle;
         if(bids[tokenId][currentAuctionNum].endTime == 0) {
-            _safeTransferFrom(previousOwner, bids[tokenId][currentAuctionNum].currentHighBider, tokenId, 1, data);
-            handleAuctionPayout(tokenId, previousOwner);
+            if(bids[tokenId][currentAuctionNum].reservePrice > 0) {
+                require(bids[tokenId][currentAuctionNum].currentHigh > bids[tokenId][currentAuctionNum].reservePrice, "can`t end ongoing time based auction");
+            } else {
+                _safeTransferFrom(previousOwner, bids[tokenId][currentAuctionNum].currentHighBider, tokenId, 1, data);
+                handleAuctionPayout(tokenId, previousOwner);
+            }
         } else {
             //security/no-
             require(bids[tokenId][currentAuctionNum].endTime < block.timestamp, "can`t end ongoing time based auction");
