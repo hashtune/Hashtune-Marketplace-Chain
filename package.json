@@ -8,7 +8,7 @@
     "lint": "tslint --config tslint.json --project tsconfig.json",
     "test:ci": "dotenv -e .env.testnet -- npx hardhat test --network testnet ./test/ci.spec.ts",
     "test:local": "dotenv -e .env.local --  npx hardhat test --network localhost ./test/auction.spec.ts ./test/contract.spec.ts",
-    "test:hardhat": "dotenv -e .env.local --  npx hardhat test --network hardhat ./test/contract.spec.ts",
+    "test:hardhat": "dotenv -e .env.local --  npx hardhat test --network hardhat ./test/contract.spec.ts ./test/auction.spec.ts",
     "test:local:ws": "npx hardhat run --network localhost ./scripts/test.ts",
     "test:ci:ws": "dotenv -e .env.testnet -- npx hardhat run --network testnet ./scripts/test.ts",
     "transpile": "tsc -w"

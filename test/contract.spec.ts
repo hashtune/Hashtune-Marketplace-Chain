@@ -17,7 +17,6 @@ export interface Context {
 describe("SongOrAlbumNFT", function () {
   // TODO move this to a separate setup file
   // Deploy contract
-  const hashtuneAddress = "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199"; // this is the last test account provided by hardhat
   let context: Context;
   const tokenId = 1;
   const prov = ethers.provider;
@@ -50,7 +49,7 @@ describe("SongOrAlbumNFT", function () {
     const result = await context.soa.create(
       [context.users.one.address, context.users.two.address],
       [90, 10],
-      1,
+      1, // For sale
       "0x6c00000000000000000000000000000000000000000000000000000000000000",
       ethers.utils.parseEther("0.005"),
       "0x6c00000000000000000000000000000000000000000000000000000000000000",
@@ -178,6 +177,7 @@ describe("SongOrAlbumNFT", function () {
           .sub(receipt.cumulativeGasUsed.mul(receipt.effectiveGasPrice))
       );
     });
+    it.skip("can transfer royalties during the second sale", async () => {});
     it("can transfer royalties during a sale", async () => {
       const asThree = connectAsUser(context.users.three, context);
       const hashtuneBeforeOne = await prov.getBalance(
