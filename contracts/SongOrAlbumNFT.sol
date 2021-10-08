@@ -288,9 +288,19 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
     function withdrawBidMoney(uint256 tokenId) public {
         uint256 currentAuctionNum = totalAuctions[tokenId];
         require(currentAuctionNum > 0, "no previous auctions happened for this NFT");
-        require(currentAuctionNum != 1 || arts[tokenId].status != DataModel.ArtStatus.forAuction, "First auction is still ongoing");
+        require(
+            currentAuctionNum != 1 || arts[tokenId].status != DataModel.ArtStatus.forAuction || bids[tokenId][currentAuctionNum].endTime == 0,
+            "First auction is still ongoing"
+        );
         uint256 balance;
-        if(arts[tokenId].status == DataModel.ArtStatus.forAuction) {
+        if(
+            arts[tokenId].status == DataModel.ArtStatus.forAuction &&
+            bids[tokenId][currentAuctionNum].endTime == 0 &&
+            msg.sender != bids[tokenId][currentAuctionNum].currentHighBider
+        ) {
+            balance = bidMoneyPoolCalculator(tokenId, currentAuctionNum, msg.sender);
+        }
+        if(arts[tokenId].status == DataModel.ArtStatus.forAuction && bids[tokenId][currentAuctionNum].endTime != 0) {
             balance = bidMoneyPoolCalculator(tokenId, currentAuctionNum - 1, msg.sender);
             uint256 currentAuctionBalance = bidMoneyPool[msg.sender][tokenId][currentAuctionNum];
             require(currentAuctionBalance == 0 || balance > 0, "Can't withdraw money from on going auction");
