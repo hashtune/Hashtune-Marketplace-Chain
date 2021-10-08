@@ -12,7 +12,7 @@ contract ArtistControl is Ownable {
     event ArtistBatchApprovalRevoked(address[] artists);
 
     /**
-    * @dev Throws if called by none approved artist address
+    * @dev Throws if called by a non approved artist address
     */
     modifier onlyApprovedArtist {
         require(approvedArtists[msg.sender], "you are not authorized to create NFT");
@@ -20,8 +20,8 @@ contract ArtistControl is Ownable {
     }
 
     /**
-    * @dev Allows to add approved artist
-    * @param artist address of the artist to approve
+    * @dev Approve an artist for minting NFTs
+    * @param address of the artist to approve
     */
     function approveArtist(address artist) public onlyOwner {
         approvedArtists[artist] = true;
@@ -29,7 +29,7 @@ contract ArtistControl is Ownable {
     }
 
     /**
-    * @dev Allows to add multiple approved artist
+    * @dev Approves multiple artists for minting NFTs at once
     * @param artists addresses of the artist to approve
     */
     function approveArtistBatch(address[] memory artists) public onlyOwner {
@@ -40,8 +40,8 @@ contract ArtistControl is Ownable {
     }
 
     /**
-    * @dev Allows to revoke artist approval to create NFT
-    * @param artist address of the artist to revoke
+    * @dev Revokes artist's permission to mint NFTs
+    * @param artist address to revoke
     */
     function revokeArtistApproval(address artist) public onlyOwner {
         approvedArtists[artist] = false;
@@ -49,8 +49,8 @@ contract ArtistControl is Ownable {
     }
 
     /**
-    * @dev Allows to revoke multiple artists approval to create NFT
-    * @param artists addresses of the artist to revoke
+    * @dev Revokes multiple artists' permissions to mint NFTs
+    * @param artists addresses to revoke
     */
     function revokeArtistBatchApproval(address[] memory artists) public onlyOwner {
         for(uint i = 0; i < artists.length; i++) {

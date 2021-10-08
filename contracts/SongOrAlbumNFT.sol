@@ -86,8 +86,8 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
     /**
     * @dev Intializes the contract setting deployer as initial owner, shares and royalties for parties involved
     * @param uri_ identifier to locate metadata of token
-    * @param _hashtuneShare amount dedicated to hashtune on every sale and auction
-    * @param _creatorsRoyaltyReserve total amount dedicated for creators on every sale and auction
+    * @param _hashtuneShare percentage amount dedicated to hashtune on every sale and auction final price
+    * @param _creatorsRoyaltyReserve total percentage amount dedicated for creators on every sale and auction final price
     */
     constructor (string memory uri_, uint256 _hashtuneShare, uint256 _creatorsRoyaltyReserve, uint256 _auctionTimeLimit) ERC1155(uri_) {
         hashtuneAddress = payable(msg.sender);
@@ -101,12 +101,12 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
     }
 
     /**
-    * @dev Allows to mint NFT and based on the choice sets for sale or for auction or idle
-    * @param creators addresses of artist involved in the creation of the NFT
-    * @param creatorsRoyalty percaentage of the royaltyReserve dedicated to each creator
-    * @param status choice to keep/sell/auction the NFT
+    * @dev Mints NFT with a starting state of idle, sale, or auction
+    * @param creators addresses of artist involved in the creation of the NFT. The first address MUST be the address of msg.sender.
+    * @param creatorsRoyalty percentage of the royaltyReserve dedicated to each creator. Must total 100.
+    * @param status choice to keep/sell/auction the NFT. 0 for idle, 1 for sale, 2 for auction.
     * @param salePrice the amount of ETH(converted to WEI) the owner wants to sell NFT for incase of sale
-    * @param reservePrice the minimum amount of ETH(converted to WEI) the owner wants for NFT incase of auction
+    * @param reservePrice the minimum amount of ETH(converted to WEI) the owner wants for NFT incase of auction. Can be 0 if no time based auction to be triggered when this number is reached.
     * @param digest hash function output converted in hex with prepended '0x'
     * @param hashFunction hash function code for the function used
     * @param size length of the digest
@@ -200,7 +200,7 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
 
 
     /**
-    * @notice If reserve price is greator than zero then the auction will run for limited time after the reserve price is met
+    * @notice If reserve price is greater than zero then the auction will run for limited time after the reserve price is met
     * @dev Allows to start an auction on NFT
     * @param tokenId unique ID of the NFT
     * @param reservePrice the minimum amount of ETH(converted to WEI) the owner wants for NFT
@@ -215,7 +215,7 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
     }
 
     /**
-    * @notice If the reservePrice is given activates the time limit for auction
+    * @notice If the reservePrice is given, the first bid (which must be higher than reserve price) activates the time limit for auction
     * @dev Allows to place bid for an ongoing auction
     * @param tokenId unique ID of the NFT
     */
@@ -281,7 +281,7 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
     }
 
     /**
-    * @dev Handle the payment distribution on auction end
+    * @dev Handles the payment distribution when the auction ends
     * @param tokenId unique ID of the NFT
     * @param beneficiary the address of reciever for the auction money
     */
