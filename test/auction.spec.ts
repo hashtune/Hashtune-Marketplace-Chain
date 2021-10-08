@@ -16,7 +16,6 @@ export interface Context {
 
 describe("auction", async () => {
   let context: Context;
-  const tokenId = 1;
   const prov = ethers.provider;
   // This is super cheap, this is a 17 USD token if 1 Ether is worth 3.4K USD
   const tokenPrice = ethers.utils.parseEther("0.005");
@@ -29,7 +28,8 @@ describe("auction", async () => {
     const SOA: SongOrAlbumNFT = (await SongOrAlbum.deploy(
       "http://blank",
       2,
-      2
+      2,
+      true
     )) as SongOrAlbumNFT;
     // Deploy the contract
     await SOA.deployed();
@@ -139,26 +139,22 @@ describe("auction", async () => {
       const res = await asTwo.placeBid(1, { value: lowerTokenPrice });
       expect(res.hash).to.not.be.undefined;
     });
-    it.skip("cannot bid on an auction once it has ended", async () => {
-      // How to simulate 24hours passed?
+    it("cannot bid on an auction once it has ended", async () => {
       await context.soa.startAuction(1, tokenPrice);
       const asTwo = connectAsUser(context.users.two, context);
       await asTwo.placeBid(1, { value: newTokenPrice });
+      await new Promise((resolve) => setTimeout(resolve, 15000));
       await context.soa.endAuction(1);
       try {
         await asTwo.placeBid(1, { value: newTokenPrice });
       } catch (e) {
         const message = new String(e);
-        expect(
-          message.includes(
-            "bid amount should be greator than the current highest"
-          )
-        ).to.be.true;
+        expect(message.includes("the art is not availble for sale or auction"))
+          .to.be.true;
       }
     });
-    it("cannot end an ongoing auction before the end time", async () => {
-      const asOne = connectAsUser(context.users.one, context);
-      await asOne.startAuction(1, tokenPrice);
+    it("cannot end an auction that I created when the reserve price is met and 24hours has not passed", async () => {
+      await context.soa.startAuction(1, tokenPrice);
       const asTwo = connectAsUser(context.users.two, context);
       await asTwo.placeBid(1, { value: newTokenPrice });
       try {
@@ -169,7 +165,25 @@ describe("auction", async () => {
           .true;
       }
     });
-    it.skip("can end an auction that I created after the reserve price is met and 24hours has passed", () => {});
+    it("cannot end an auction that I created when the reserve price is not met and 24hours has  passed", async () => {
+      await context.soa.startAuction(1, tokenPrice);
+      await new Promise((resolve) => setTimeout(resolve, 15000));
+      try {
+        await context.soa.endAuction(1);
+      } catch (e) {
+        const message = new String(e);
+        expect(message.includes("can`t end ongoing time based auction")).to.be
+          .true;
+      }
+    });
+    it("can end an auction that I created after the reserve price is met and 24hours has passed", async () => {
+      await context.soa.startAuction(1, tokenPrice);
+      const asTwo = connectAsUser(context.users.two, context);
+      await asTwo.placeBid(1, { value: newTokenPrice });
+      await new Promise((resolve) => setTimeout(resolve, 15000));
+      const res = await context.soa.endAuction(1);
+      expect(res.hash).to.not.be.undefined;
+    });
     it("cannot end an auction I did not create", async () => {
       await context.soa.startAuction(1, tokenPrice);
       const asTwo = connectAsUser(context.users.two, context);
@@ -179,14 +193,6 @@ describe("auction", async () => {
         const message = new String(e);
         expect(message.includes("you are not the owner of the art")).to.be.true;
       }
-    });
-    it.skip("can receive the token if I am the last highest bidder", async () => {
-      await context.soa.startAuction(1, tokenPrice);
-      const asTwo = connectAsUser(context.users.two, context);
-      await asTwo.placeBid(1, { value: newTokenPrice });
-      const asThree = connectAsUser(context.users.three, context);
-      await asThree.placeBid(1, { value: highestTokenPrice });
-      //End auction after 24hours and check new Owner and funds
     });
     it("cannot withdraw my funds out if the auction is ongoing", async () => {
       await context.soa.startAuction(1, tokenPrice);
@@ -211,10 +217,132 @@ describe("auction", async () => {
         expect(message.includes("First auction is still ongoing")).to.be.true;
       }
     });
-    it.skip("can withdraw my funds out after the auction ends if I did not win", () => {});
-    it.skip("cannot withdraw my funds out after the auction ends if I won", () => {});
-    it.skip("can receive payment after the auction ends if I am the token owner", () => {});
-    it.skip("can receive royalties after the auction ends if I am the token creator", () => {});
+    it("can withdraw my funds out after the auction ends if I did not win", async () => {
+      await context.soa.startAuction(1, tokenPrice);
+      const asTwo = connectAsUser(context.users.two, context);
+      const balanceBefore = await prov.getBalance(context.users.two.address);
+      const transaction1 = await asTwo.placeBid(1, { value: newTokenPrice });
+      const asThree = connectAsUser(context.users.three, context);
+      await asThree.placeBid(1, { value: highestTokenPrice });
+      await new Promise((resolve) => setTimeout(resolve, 15000));
+      await context.soa.endAuction(1);
+      const transaction2 = await asTwo.withdrawBidMoney(1);
+      const balanceAfter = await prov.getBalance(context.users.two.address);
+      const receipt1 = await prov.getTransactionReceipt(transaction1.hash);
+      const receipt2 = await prov.getTransactionReceipt(transaction2.hash);
+      const royaltyFeature = highestTokenPrice.mul(2).div(100).mul(10).div(100);
+      expect(balanceAfter).to.be.equal(
+        balanceBefore
+          .sub(receipt1.cumulativeGasUsed.mul(receipt1.effectiveGasPrice))
+          .sub(receipt2.cumulativeGasUsed.mul(receipt2.effectiveGasPrice))
+          .add(royaltyFeature)
+      );
+    });
+    it("cannot withdraw my funds out after the auction ends if I won", async () => {
+      await context.soa.startAuction(1, tokenPrice);
+      const asTwo = connectAsUser(context.users.two, context);
+      await prov.getBalance(context.users.two.address);
+      await asTwo.placeBid(1, { value: newTokenPrice });
+      const asThree = connectAsUser(context.users.three, context);
+      await asThree.placeBid(1, { value: highestTokenPrice });
+      await new Promise((resolve) => setTimeout(resolve, 15000));
+      await context.soa.endAuction(1);
+      try {
+        await asThree.withdrawBidMoney(1);
+      } catch (e) {
+        const message = new String(e);
+        expect(message.includes("you dont have any money in the biding pool"))
+          .to.be.true;
+      }
+    });
+    it("can withdraw my funds out after the auction ends even if a new one has started and is active", async () => {
+      await context.soa.startAuction(1, tokenPrice);
+      const asTwo = connectAsUser(context.users.two, context);
+      const balanceBefore = await prov.getBalance(context.users.two.address);
+      const transaction1 = await asTwo.placeBid(1, { value: newTokenPrice });
+      const asThree = connectAsUser(context.users.three, context);
+      await asThree.placeBid(1, { value: highestTokenPrice });
+      await new Promise((resolve) => setTimeout(resolve, 15000));
+      await context.soa.endAuction(1);
+      // Second auction
+      await asThree.startAuction(1, tokenPrice);
+      const transaction2 = await asTwo.withdrawBidMoney(1);
+      const balanceAfter = await prov.getBalance(context.users.two.address);
+      const receipt1 = await prov.getTransactionReceipt(transaction1.hash);
+      const receipt2 = await prov.getTransactionReceipt(transaction2.hash);
+      const royaltyFeature = highestTokenPrice.mul(2).div(100).mul(10).div(100);
+      expect(balanceAfter).to.be.equal(
+        balanceBefore
+          .sub(receipt1.cumulativeGasUsed.mul(receipt1.effectiveGasPrice))
+          .sub(receipt2.cumulativeGasUsed.mul(receipt2.effectiveGasPrice))
+          .add(royaltyFeature)
+      );
+    });
+    it("can receive the token if I am the last highest bidder", async () => {
+      await context.soa.startAuction(1, tokenPrice);
+      const asTwo = connectAsUser(context.users.two, context);
+      await asTwo.placeBid(1, { value: highestTokenPrice });
+      await new Promise((resolve) => setTimeout(resolve, 15000));
+      await context.soa.endAuction(1);
+      const balanceOfWinner = await context.soa.balanceOf(
+        context.users.two.address,
+        1
+      );
+      const balanceOfOldOwner = await context.soa.balanceOf(
+        context.users.one.address,
+        1
+      );
+      expect(balanceOfWinner).to.be.equal("0x01");
+      expect(balanceOfOldOwner).to.be.equal("0x00");
+    });
+    it("can receive payment after the auction ends if I am the token owner", async () => {
+      await context.soa.startAuction(1, tokenPrice);
+      const asTwo = connectAsUser(context.users.two, context);
+      await asTwo.placeBid(1, { value: highestTokenPrice });
+      await new Promise((resolve) => setTimeout(resolve, 15000));
+      const balanceBefore = await prov.getBalance(context.users.one.address);
+      const transaction = await context.soa.endAuction(1);
+      const balanceAfter = await prov.getBalance(context.users.one.address);
+      const receipt = await prov.getTransactionReceipt(transaction.hash);
+      const royaltyFeature = highestTokenPrice.mul(2).div(100).mul(10).div(100);
+      expect(balanceAfter).to.be.equal(
+        balanceBefore
+          .sub(receipt.cumulativeGasUsed.mul(receipt.effectiveGasPrice))
+          .add(highestTokenPrice)
+          .sub(royaltyFeature)
+      );
+    });
+    it("can receive royalties after the auction ends if I am the token creator", async () => {
+      await context.soa.startAuction(1, tokenPrice);
+      const asTwo = connectAsUser(context.users.two, context);
+      await asTwo.placeBid(1, { value: highestTokenPrice });
+      await new Promise((resolve) => setTimeout(resolve, 15000));
+      await context.soa.endAuction(1);
+      // Second auction
+      const oneBalanceBefore = await prov.getBalance(context.users.one.address);
+      await asTwo.startAuction(1, tokenPrice);
+      const twoBalanceBefore = await prov.getBalance(context.users.two.address);
+      const asThree = connectAsUser(context.users.three, context);
+      await asThree.placeBid(1, { value: highestTokenPrice });
+      await new Promise((resolve) => setTimeout(resolve, 15000));
+      const transaction = await asTwo.endAuction(1);
+
+      const oneBalanceAfter = await prov.getBalance(context.users.one.address);
+      const twoBalanceAfter = await prov.getBalance(context.users.two.address);
+      const receipt = await prov.getTransactionReceipt(transaction.hash);
+      const royaltyCreator = highestTokenPrice.mul(2).div(100).mul(90).div(100);
+      const royaltyHashtune = highestTokenPrice.mul(2).div(100);
+      expect(oneBalanceAfter).to.be.equal(
+        oneBalanceBefore.add(royaltyCreator).add(royaltyHashtune)
+      );
+      expect(twoBalanceAfter).to.be.equal(
+        twoBalanceBefore
+          .add(highestTokenPrice)
+          .sub(receipt.cumulativeGasUsed.mul(receipt.effectiveGasPrice))
+          .sub(royaltyCreator)
+          .sub(royaltyHashtune)
+      );
+    });
   });
 
   describe("Auction with no reserve price", () => {

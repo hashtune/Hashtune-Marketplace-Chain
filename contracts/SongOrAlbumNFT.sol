@@ -18,6 +18,7 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
     address payable hashtuneAddress;
     uint256 hashtuneShare = 2; //represents 2%
     uint256 creatorsRoyaltyReserve = 2;
+    bool    test = false;
 
     mapping(uint256 => DataModel.ArtInfo) public arts; // maps tokenId to artInfo
     mapping(uint256 => mapping(uint256 => DataModel.AuctionInfo)) public bids; //maps tokenId to auctionId to auctionInfo
@@ -69,11 +70,12 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
         _;
     }
 
-    constructor (string memory uri_, uint256 _hashtuneShare, uint256 _creatorsRoyaltyReserve) ERC1155(uri_) {
+    constructor (string memory uri_, uint256 _hashtuneShare, uint256 _creatorsRoyaltyReserve, bool _test) ERC1155(uri_) {
         console.log("Deploying a Song or Album Contract with uri:", uri_);
         hashtuneAddress = payable(msg.sender);
         hashtuneShare = _hashtuneShare; //adding share value at the time of deployment
         creatorsRoyaltyReserve = _creatorsRoyaltyReserve;
+        test = _test;
     }
 
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC1155, AccessControl) returns (bool) {
@@ -159,13 +161,17 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
     }
 
     function placeBid(uint256 tokenId)
-        public payable onlyNotNftOwner(tokenId) onlyNotIdle(tokenId) onlyNotForSale(tokenId) {
+        public payable onlyNotIdle(tokenId) onlyNotNftOwner(tokenId) onlyNotForSale(tokenId) {
 
         uint256 currentAuctionNum = totalAuctions[tokenId];
         uint256 newBidSum = msg.value + bidMoneyPool[msg.sender][tokenId][currentAuctionNum];
         require(newBidSum > bids[tokenId][currentAuctionNum].currentHigh, "bid amount should be greator than the current highest");
         if(bids[tokenId][currentAuctionNum].reservePrice > 0 && bids[tokenId][currentAuctionNum].endTime == 0) {
-            bids[tokenId][currentAuctionNum].endTime = block.timestamp + 1 days;
+            if (test == true) {
+                bids[tokenId][currentAuctionNum].endTime = block.timestamp + 10 seconds;
+            } else {
+                bids[tokenId][currentAuctionNum].endTime = block.timestamp + 1 days;
+            }
         }
         uint256 endTime = bids[tokenId][currentAuctionNum].endTime;
         if(endTime == 0 || block.timestamp < endTime) {
@@ -187,8 +193,12 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
         bytes memory data;
         arts[tokenId].status = DataModel.ArtStatus.idle;
         if(bids[tokenId][currentAuctionNum].endTime == 0) {
-            _safeTransferFrom(previousOwner, bids[tokenId][currentAuctionNum].currentHighBider, tokenId, 1, data);
-            handleAuctionPayout(tokenId, previousOwner);
+            if(bids[tokenId][currentAuctionNum].reservePrice > 0) {
+                require(bids[tokenId][currentAuctionNum].currentHigh > bids[tokenId][currentAuctionNum].reservePrice, "can`t end ongoing time based auction");
+            } else {
+                _safeTransferFrom(previousOwner, bids[tokenId][currentAuctionNum].currentHighBider, tokenId, 1, data);
+                handleAuctionPayout(tokenId, previousOwner);
+            }
         } else {
             require(bids[tokenId][currentAuctionNum].endTime < block.timestamp, "can`t end ongoing time based auction");
             _safeTransferFrom(previousOwner, bids[tokenId][currentAuctionNum].currentHighBider, tokenId, 1, data);

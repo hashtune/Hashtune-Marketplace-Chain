@@ -28,7 +28,8 @@ describe("SongOrAlbumNFT", function () {
     const SOA: SongOrAlbumNFT = (await SongOrAlbum.deploy(
       "http://blank",
       2,
-      2
+      2,
+      true
     )) as SongOrAlbumNFT;
     // Deploy the contract
     await SOA.deployed();
