@@ -20,6 +20,7 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
     address payable hashtuneAddress;
     uint256 hashtuneShare = 2; //represents 2%
     uint256 creatorsRoyaltyReserve = 2;
+    uint256 auctionTimeLimit = 1 days;
 
     mapping(uint256 => DataModel.ArtInfo) public arts; // maps tokenId to artInfo
     mapping(uint256 => mapping(uint256 => DataModel.AuctionInfo)) public bids; //maps tokenId to auctionId to auctionInfo
@@ -89,10 +90,11 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
     * @param _hashtuneShare amount dedicated to hashtune on every sale and auction
     * @param _creatorsRoyaltyReserve total amount dedicated for creators on every sale and auction
     */
-    constructor (string memory uri_, uint256 _hashtuneShare, uint256 _creatorsRoyaltyReserve) ERC1155(uri_) {
+    constructor (string memory uri_, uint256 _hashtuneShare, uint256 _creatorsRoyaltyReserve, uint256 _auctionTimeLimit) ERC1155(uri_) {
         hashtuneAddress = payable(msg.sender);
         hashtuneShare = _hashtuneShare; //adding share value at the time of deployment
         creatorsRoyaltyReserve = _creatorsRoyaltyReserve;
+        auctionTimeLimit = _auctionTimeLimit;
     }
 
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC1155, AccessControl) returns (bool) {
@@ -226,7 +228,7 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
         uint256 newBidSum = msg.value + bidMoneyPool[msg.sender][tokenId][currentAuctionNum];
         require(newBidSum > bids[tokenId][currentAuctionNum].currentHigh, "bid amount should be greator than the current highest");
         if(bids[tokenId][currentAuctionNum].reservePrice > 0 && bids[tokenId][currentAuctionNum].endTime == 0) {
-            bids[tokenId][currentAuctionNum].endTime = block.timestamp + 1 days;
+            bids[tokenId][currentAuctionNum].endTime = block.timestamp + auctionTimeLimit;
         }
         uint256 endTime = bids[tokenId][currentAuctionNum].endTime;
         if(endTime == 0 || block.timestamp < endTime) {
