@@ -1,7 +1,5 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
-
-import "hardhat/console.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "./DataModel.sol";
@@ -11,7 +9,11 @@ import "./ArtistControl.sol";
 // external - Cannot be accessed internally, only externally
 // internal - only this contract and contracts deriving from it can access
 // private - can be accessed only from this contract
-// TODO add event emissions
+
+/**
+* @title A Marketplace for Music NFT
+* @author Muhammad Anas Afzal, Emily Morgan
+*/
 contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
 
     uint256 totalArts;
@@ -45,33 +47,49 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
     event EndAuction(uint256 tokenId, uint256 auctionNum, address newOwner, uint256 soldFor);
     event WithdrawMoney(address receiver, uint256 withdrawnAmount);
 
+    /**
+    * @dev Throws if called by any account other than the NFT owner
+    */
     modifier onlyNftOwner(uint256 tokenId) {
         require(arts[tokenId].currentOwner == msg.sender, "you are not the owner of the art");
         _;
     }
-
+    /**
+    * @dev Throws if called by the NFT owner
+    */
     modifier onlyNotNftOwner(uint256 tokenId) {
         require(arts[tokenId].currentOwner != msg.sender, "you can't bid on or buy your own NFT");
         _;
     }
-
+    /**
+    * @dev Throws if called when NFT not for sale and auction
+    */
     modifier onlyNotIdle(uint256 tokenId) {
         require(arts[tokenId].status != DataModel.ArtStatus.idle, "the art is not availble for sale or auction");
         _;
     }
-
+    /**
+    * @dev Throws if called when NFT is for sale
+    */
     modifier onlyNotForSale(uint256 tokenId) {
         require(arts[tokenId].status != DataModel.ArtStatus.forSale, "the art is already up for sale");
         _;
     }
-
+    /**
+    * @dev Throws if called when NFT is for auction
+    */
     modifier onlyNotForAuction(uint256 tokenId) {
         require(arts[tokenId].status != DataModel.ArtStatus.forAuction, "the art is already up for auction");
         _;
     }
 
+    /**
+    * @dev Intializes the contract setting deployer as initial owner, shares and royalties for parties involved
+    * @param uri_ identifier to locate metadata of token
+    * @param _hashtuneShare percentage amount dedicated to hashtune on every sale and auction final price
+    * @param _creatorsRoyaltyReserve total percentage amount dedicated for creators on every sale and auction final price
+    */
     constructor (string memory uri_, uint256 _hashtuneShare, uint256 _creatorsRoyaltyReserve, bool _test) ERC1155(uri_) {
-        console.log("Deploying a Song or Album Contract with uri:", uri_);
         hashtuneAddress = payable(msg.sender);
         hashtuneShare = _hashtuneShare; //adding share value at the time of deployment
         creatorsRoyaltyReserve = _creatorsRoyaltyReserve;
@@ -82,6 +100,17 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
         return super.supportsInterface(interfaceId);
     }
 
+    /**
+    * @dev Mints NFT with a starting state of idle, sale, or auction
+    * @param creators addresses of artist involved in the creation of the NFT. The first address MUST be the address of msg.sender.
+    * @param creatorsRoyalty percentage of the royaltyReserve dedicated to each creator. Must total 100.
+    * @param status choice to keep/sell/auction the NFT. 0 for idle, 1 for sale, 2 for auction.
+    * @param salePrice the amount of ETH(converted to WEI) the owner wants to sell NFT for incase of sale
+    * @param reservePrice the minimum amount of ETH(converted to WEI) the owner wants for NFT incase of auction. Can be 0 if no time based auction to be triggered when this number is reached.
+    * @param digest hash function output converted in hex with prepended '0x'
+    * @param hashFunction hash function code for the function used
+    * @param size length of the digest
+    */
     function create(
         address payable[] memory creators,
         uint256[] memory creatorsRoyalty,
@@ -93,6 +122,7 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
         uint8 hashFunction,
         uint8 size
         ) public onlyApprovedArtist {
+
         require(creators.length == creatorsRoyalty.length, "all creators must have shares defined");
         uint256 sharePercent;
         for(uint256 i = 0; i < creatorsRoyalty.length; i++) {
@@ -115,16 +145,29 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
         }
         emit TokenCreated(msg.sender, totalArts, creators, creatorsRoyalty, status, digest, hashFunction, size);
     }
+
+    /**
+    * @dev Sets NFT for sale
+    * @param tokenId unique ID of the NFT
+    * @param salePrice the amount of ETH(converted to WEI) the owner wants to sell NFT for incase of sale
+    */
     function setForSale(uint256 tokenId, uint256 salePrice)
         public onlyNftOwner(tokenId) onlyNotForSale(tokenId) onlyNotForAuction(tokenId) {
+
         require(salePrice > 0, "Sale price should be greater than 0");
         arts[tokenId].status = DataModel.ArtStatus.forSale;
         arts[tokenId].salePrice = salePrice;
         emit NewSale(tokenId, salePrice);
     }
 
+    /**
+    * @notice Its a payable function meaning you can send ETH with the transaction to buy NFT
+    * @dev Allows to buy an NFT that is for sale
+    * @param tokenId unique ID of the NFT
+    */
     function buy(uint256 tokenId)
         public payable onlyNotNftOwner(tokenId) onlyNotIdle(tokenId) onlyNotForAuction(tokenId) {
+
         require(arts[tokenId].salePrice == msg.value, "incorrect amount sent");
         //always mutate the state first and then do external calls
         address payable previousOwner = arts[tokenId].currentOwner;
@@ -136,7 +179,12 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
         emit TokenPurchased(msg.sender, tokenId);
     }
 
-    // handles the payment distribution on a sale
+    /**
+    * @dev Handles the payment distribution on a sale
+    * @param tokenId unique ID of the NFT
+    * @param beneficiary the address of reciever for the Sale or Auction money
+    * @param amount the amount of ETH(converted to WEI)
+    */
     function handlePayout(uint256 tokenId, address payable beneficiary, uint256 amount) private {
         uint256 creatorsRoyaltyCut = amount * creatorsRoyaltyReserve / 100;
         uint256 hashtuneCut = amount * hashtuneShare / 100;
@@ -150,6 +198,13 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
         beneficiary.transfer(amount - creatorsRoyaltyCut - hashtuneCut);
     }
 
+
+    /**
+    * @notice If reserve price is greater than zero then the auction will run for limited time after the reserve price is met
+    * @dev Allows to start an auction on NFT
+    * @param tokenId unique ID of the NFT
+    * @param reservePrice the minimum amount of ETH(converted to WEI) the owner wants for NFT
+    */
     function startAuction(uint256 tokenId, uint256 reservePrice)
         public onlyNftOwner(tokenId) onlyNotForAuction(tokenId) onlyNotForSale(tokenId) {
 
@@ -160,6 +215,11 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
         emit NewAuction(tokenId, newAuctionNum, bids[tokenId][newAuctionNum].reservePrice);
     }
 
+    /**
+    * @notice If the reservePrice is given, the first bid (which must be higher than reserve price) activates the time limit for auction
+    * @dev Allows to place bid for an ongoing auction
+    * @param tokenId unique ID of the NFT
+    */
     function placeBid(uint256 tokenId)
         public payable onlyNotIdle(tokenId) onlyNotNftOwner(tokenId) onlyNotForSale(tokenId) {
 
@@ -184,7 +244,11 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
         emit NewBid(msg.sender, tokenId, msg.value);
     }
 
-
+    /**
+    * @notice Can not end an auction if there is endtime for auction defined
+    * @dev Allows to end auction on NFT and distributes the funds
+    * @param tokenId unique ID of the NFT
+    */
     function endAuction(uint256 tokenId) public
         onlyNftOwner(tokenId) onlyNotIdle(tokenId) onlyNotForSale(tokenId) {
         uint256 currentAuctionNum = totalAuctions[tokenId];
@@ -212,7 +276,11 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
         );
     }
 
-    // handle the payment distribution on auctions
+    /**
+    * @dev Handles the payment distribution when the auction ends
+    * @param tokenId unique ID of the NFT
+    * @param beneficiary the address of reciever for the auction money
+    */
     function handleAuctionPayout(uint256 tokenId, address payable beneficiary) private {
         uint256 currentAuctionNum = totalAuctions[tokenId];
         address currentHighBider = bids[tokenId][currentAuctionNum].currentHighBider;
@@ -221,7 +289,11 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
         handlePayout(tokenId, beneficiary, bids[tokenId][currentAuctionNum].currentHigh);
     }
 
-    //lets you withdraw your bid money when the auction is ended.
+    /**
+    * @notice You can withdraw all the money if the auction has ended otherwise only from the previous auctions
+    * @dev Allows to withdraw ETH from the bidMoneyPool
+    * @param tokenId unique ID of the NFT
+    */
     function withdrawBidMoney(uint256 tokenId) public {
         uint256 currentAuctionNum = totalAuctions[tokenId];
         require(currentAuctionNum > 0, "no previous auctions happened for this NFT");
@@ -240,7 +312,13 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
         emit WithdrawMoney(msg.sender, balance);
     }
 
-    //helper function to save storage
+    /**
+    * @dev Calculate the amount of ETH in bidMoneyPool
+    * @param tokenId unique ID of the NFT
+    * @param toAuctionNum number of auction to calculate money for
+    * @param bider address of bider who took part in auction
+    * @return the amount of Eth in bidMoneyPool
+    */
     function bidMoneyPoolCalculator(uint256 tokenId, uint256 toAuctionNum, address bider) private returns (uint256) {
         uint256 balance;
         for(uint256 i = 1; i <= toAuctionNum; i++) {
