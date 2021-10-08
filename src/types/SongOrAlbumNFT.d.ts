@@ -334,7 +334,7 @@ interface SongOrAlbumNFTInterface extends ethers.utils.Interface {
     "ArtistBatchApprovalRevoked(address[])": EventFragment;
     "ArtistBatchApproved(address[])": EventFragment;
     "EndAuction(uint256,uint256,address,uint256)": EventFragment;
-    "NewAuction(uint256,uint256,uint256,uint256)": EventFragment;
+    "NewAuction(uint256,uint256,uint256)": EventFragment;
     "NewBid(address,uint256,uint256)": EventFragment;
     "NewPrice(address,uint256,uint256)": EventFragment;
     "NewSale(uint256,uint256)": EventFragment;
@@ -1158,16 +1158,10 @@ export class SongOrAlbumNFT extends BaseContract {
     NewAuction(
       tokenId?: null,
       auctionNum?: null,
-      reservePrice?: null,
-      endTime?: null
+      reservePrice?: null
     ): TypedEventFilter<
-      [BigNumber, BigNumber, BigNumber, BigNumber],
-      {
-        tokenId: BigNumber;
-        auctionNum: BigNumber;
-        reservePrice: BigNumber;
-        endTime: BigNumber;
-      }
+      [BigNumber, BigNumber, BigNumber],
+      { tokenId: BigNumber; auctionNum: BigNumber; reservePrice: BigNumber }
     >;
 
     NewBid(
