@@ -34,7 +34,6 @@ interface SongOrAlbumNFTInterface extends ethers.utils.Interface {
     "buy(uint256)": FunctionFragment;
     "create(address[],uint256[],uint8,bytes,uint256,uint256,bytes32,uint8,uint8)": FunctionFragment;
     "endAuction(uint256)": FunctionFragment;
-    "getCurrentOwner(uint256)": FunctionFragment;
     "getRoleAdmin(bytes32)": FunctionFragment;
     "grantRole(bytes32,address)": FunctionFragment;
     "hasRole(bytes32,address)": FunctionFragment;
@@ -49,12 +48,7 @@ interface SongOrAlbumNFTInterface extends ethers.utils.Interface {
     "safeBatchTransferFrom(address,address,uint256[],uint256[],bytes)": FunctionFragment;
     "safeTransferFrom(address,address,uint256,uint256,bytes)": FunctionFragment;
     "setApprovalForAll(address,bool)": FunctionFragment;
-    "setApprovalToBuy(address,uint256)": FunctionFragment;
-    "setCurrentPrice(uint256,uint256)": FunctionFragment;
     "setForSale(uint256,uint256)": FunctionFragment;
-    "setURI(string)": FunctionFragment;
-    "showSalePriceFor(uint256)": FunctionFragment;
-    "showURI(uint256)": FunctionFragment;
     "startAuction(uint256,uint256)": FunctionFragment;
     "supportsInterface(bytes4)": FunctionFragment;
     "totalAuctions(uint256)": FunctionFragment;
@@ -116,10 +110,6 @@ interface SongOrAlbumNFTInterface extends ethers.utils.Interface {
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
-    functionFragment: "getCurrentOwner",
-    values: [BigNumberish]
-  ): string;
-  encodeFunctionData(
     functionFragment: "getRoleAdmin",
     values: [BytesLike]
   ): string;
@@ -173,25 +163,8 @@ interface SongOrAlbumNFTInterface extends ethers.utils.Interface {
     values: [string, boolean]
   ): string;
   encodeFunctionData(
-    functionFragment: "setApprovalToBuy",
-    values: [string, BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "setCurrentPrice",
-    values: [BigNumberish, BigNumberish]
-  ): string;
-  encodeFunctionData(
     functionFragment: "setForSale",
     values: [BigNumberish, BigNumberish]
-  ): string;
-  encodeFunctionData(functionFragment: "setURI", values: [string]): string;
-  encodeFunctionData(
-    functionFragment: "showSalePriceFor",
-    values: [BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "showURI",
-    values: [BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "startAuction",
@@ -246,10 +219,6 @@ interface SongOrAlbumNFTInterface extends ethers.utils.Interface {
   decodeFunctionResult(functionFragment: "create", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "endAuction", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "getCurrentOwner",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
     functionFragment: "getRoleAdmin",
     data: BytesLike
   ): Result;
@@ -290,21 +259,7 @@ interface SongOrAlbumNFTInterface extends ethers.utils.Interface {
     functionFragment: "setApprovalForAll",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(
-    functionFragment: "setApprovalToBuy",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "setCurrentPrice",
-    data: BytesLike
-  ): Result;
   decodeFunctionResult(functionFragment: "setForSale", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "setURI", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "showSalePriceFor",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(functionFragment: "showURI", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "startAuction",
     data: BytesLike
@@ -336,7 +291,6 @@ interface SongOrAlbumNFTInterface extends ethers.utils.Interface {
     "EndAuction(uint256,uint256,address,uint256)": EventFragment;
     "NewAuction(uint256,uint256,uint256)": EventFragment;
     "NewBid(address,uint256,uint256)": EventFragment;
-    "NewPrice(address,uint256,uint256)": EventFragment;
     "NewSale(uint256,uint256)": EventFragment;
     "NewURI(address,string)": EventFragment;
     "OwnershipTransferred(address,address)": EventFragment;
@@ -360,7 +314,6 @@ interface SongOrAlbumNFTInterface extends ethers.utils.Interface {
   getEvent(nameOrSignatureOrTopic: "EndAuction"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "NewAuction"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "NewBid"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "NewPrice"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "NewSale"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "NewURI"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "OwnershipTransferred"): EventFragment;
@@ -486,12 +439,11 @@ export class SongOrAlbumNFT extends BaseContract {
       arg1: BigNumberish,
       overrides?: CallOverrides
     ): Promise<
-      [BigNumber, string, BigNumber, BigNumber, boolean] & {
+      [BigNumber, string, BigNumber, BigNumber] & {
         currentHigh: BigNumber;
         currentHighBider: string;
         endTime: BigNumber;
         reservePrice: BigNumber;
-        isFinalized: boolean;
       }
     >;
 
@@ -517,11 +469,6 @@ export class SongOrAlbumNFT extends BaseContract {
       tokenId: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
-
-    getCurrentOwner(
-      tokenId: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<[string]>;
 
     getRoleAdmin(role: BytesLike, overrides?: CallOverrides): Promise<[string]>;
 
@@ -600,35 +547,11 @@ export class SongOrAlbumNFT extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
-    setApprovalToBuy(
-      toApprove: string,
-      tokenId: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<ContractTransaction>;
-
-    setCurrentPrice(
-      newPrice: BigNumberish,
-      tokenId: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<ContractTransaction>;
-
     setForSale(
       tokenId: BigNumberish,
       salePrice: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
-
-    setURI(
-      newuri: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<ContractTransaction>;
-
-    showSalePriceFor(
-      id: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<[BigNumber]>;
-
-    showURI(id: BigNumberish, overrides?: CallOverrides): Promise<[string]>;
 
     startAuction(
       tokenId: BigNumberish,
@@ -722,12 +645,11 @@ export class SongOrAlbumNFT extends BaseContract {
     arg1: BigNumberish,
     overrides?: CallOverrides
   ): Promise<
-    [BigNumber, string, BigNumber, BigNumber, boolean] & {
+    [BigNumber, string, BigNumber, BigNumber] & {
       currentHigh: BigNumber;
       currentHighBider: string;
       endTime: BigNumber;
       reservePrice: BigNumber;
-      isFinalized: boolean;
     }
   >;
 
@@ -753,11 +675,6 @@ export class SongOrAlbumNFT extends BaseContract {
     tokenId: BigNumberish,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
-
-  getCurrentOwner(
-    tokenId: BigNumberish,
-    overrides?: CallOverrides
-  ): Promise<string>;
 
   getRoleAdmin(role: BytesLike, overrides?: CallOverrides): Promise<string>;
 
@@ -836,35 +753,11 @@ export class SongOrAlbumNFT extends BaseContract {
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
-  setApprovalToBuy(
-    toApprove: string,
-    tokenId: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
-  ): Promise<ContractTransaction>;
-
-  setCurrentPrice(
-    newPrice: BigNumberish,
-    tokenId: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
-  ): Promise<ContractTransaction>;
-
   setForSale(
     tokenId: BigNumberish,
     salePrice: BigNumberish,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
-
-  setURI(
-    newuri: string,
-    overrides?: Overrides & { from?: string | Promise<string> }
-  ): Promise<ContractTransaction>;
-
-  showSalePriceFor(
-    id: BigNumberish,
-    overrides?: CallOverrides
-  ): Promise<BigNumber>;
-
-  showURI(id: BigNumberish, overrides?: CallOverrides): Promise<string>;
 
   startAuction(
     tokenId: BigNumberish,
@@ -955,12 +848,11 @@ export class SongOrAlbumNFT extends BaseContract {
       arg1: BigNumberish,
       overrides?: CallOverrides
     ): Promise<
-      [BigNumber, string, BigNumber, BigNumber, boolean] & {
+      [BigNumber, string, BigNumber, BigNumber] & {
         currentHigh: BigNumber;
         currentHighBider: string;
         endTime: BigNumber;
         reservePrice: BigNumber;
-        isFinalized: boolean;
       }
     >;
 
@@ -980,11 +872,6 @@ export class SongOrAlbumNFT extends BaseContract {
     ): Promise<void>;
 
     endAuction(tokenId: BigNumberish, overrides?: CallOverrides): Promise<void>;
-
-    getCurrentOwner(
-      tokenId: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<string>;
 
     getRoleAdmin(role: BytesLike, overrides?: CallOverrides): Promise<string>;
 
@@ -1058,32 +945,11 @@ export class SongOrAlbumNFT extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
-    setApprovalToBuy(
-      toApprove: string,
-      tokenId: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
-    setCurrentPrice(
-      newPrice: BigNumberish,
-      tokenId: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
     setForSale(
       tokenId: BigNumberish,
       salePrice: BigNumberish,
       overrides?: CallOverrides
     ): Promise<void>;
-
-    setURI(newuri: string, overrides?: CallOverrides): Promise<void>;
-
-    showSalePriceFor(
-      id: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
-    showURI(id: BigNumberish, overrides?: CallOverrides): Promise<string>;
 
     startAuction(
       tokenId: BigNumberish,
@@ -1171,15 +1037,6 @@ export class SongOrAlbumNFT extends BaseContract {
     ): TypedEventFilter<
       [string, BigNumber, BigNumber],
       { by: string; tokenId: BigNumber; amount: BigNumber }
-    >;
-
-    NewPrice(
-      setBy?: null,
-      newPrice?: null,
-      tokenId?: null
-    ): TypedEventFilter<
-      [string, BigNumber, BigNumber],
-      { setBy: string; newPrice: BigNumber; tokenId: BigNumber }
     >;
 
     NewSale(
@@ -1394,11 +1251,6 @@ export class SongOrAlbumNFT extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
-    getCurrentOwner(
-      tokenId: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
     getRoleAdmin(
       role: BytesLike,
       overrides?: CallOverrides
@@ -1479,35 +1331,11 @@ export class SongOrAlbumNFT extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
-    setApprovalToBuy(
-      toApprove: string,
-      tokenId: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<BigNumber>;
-
-    setCurrentPrice(
-      newPrice: BigNumberish,
-      tokenId: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<BigNumber>;
-
     setForSale(
       tokenId: BigNumberish,
       salePrice: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
-
-    setURI(
-      newuri: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<BigNumber>;
-
-    showSalePriceFor(
-      id: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
-    showURI(id: BigNumberish, overrides?: CallOverrides): Promise<BigNumber>;
 
     startAuction(
       tokenId: BigNumberish,
@@ -1611,11 +1439,6 @@ export class SongOrAlbumNFT extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
-    getCurrentOwner(
-      tokenId: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
     getRoleAdmin(
       role: BytesLike,
       overrides?: CallOverrides
@@ -1696,37 +1519,10 @@ export class SongOrAlbumNFT extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
-    setApprovalToBuy(
-      toApprove: string,
-      tokenId: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<PopulatedTransaction>;
-
-    setCurrentPrice(
-      newPrice: BigNumberish,
-      tokenId: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<PopulatedTransaction>;
-
     setForSale(
       tokenId: BigNumberish,
       salePrice: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<PopulatedTransaction>;
-
-    setURI(
-      newuri: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<PopulatedTransaction>;
-
-    showSalePriceFor(
-      id: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
-    showURI(
-      id: BigNumberish,
-      overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     startAuction(

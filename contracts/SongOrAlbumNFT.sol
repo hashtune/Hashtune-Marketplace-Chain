@@ -39,7 +39,6 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
     event NewSale(uint256 tokenId, uint256 salePrice);
     event TokenPurchased(address by, uint256 tokenId);
     event PayoutOccurred(address to, uint256 amount);
-    event NewPrice(address setBy, uint256 newPrice, uint256 tokenId);
     event NewBid(address by, uint256 tokenId, uint256 amount);
     event NewAuction(uint256 tokenId, uint256 auctionNum, uint256 reservePrice);
     event EndAuction(uint256 tokenId, uint256 auctionNum, address newOwner, uint256 soldFor);

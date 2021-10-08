@@ -67,16 +67,7 @@ describe("SongOrAlbumNFT", function () {
     return SOA;
   });
   describe("Contract Owner", function () {
-    // User 1
-    it("can change the price of the token", async function () {
-      const result = await context.soa.setCurrentPrice(tokenPrice, tokenId, {
-        gasLimit: 100000,
-      });
-      expect(result.hash).to.not.be.undefined;
-    });
     it("can sell the token if they own it", async function () {
-      const asOne = connectAsUser(context.users.one, context);
-      await asOne.setApprovalToBuy(context.users.three.address, tokenId);
       const asThree = connectAsUser(context.users.three, context);
       await asThree.buy(tokenId, {
         value: tokenPrice,
@@ -87,24 +78,7 @@ describe("SongOrAlbumNFT", function () {
       );
       expect(balance._hex).to.be.equal("0x01");
     });
-    it("cannot change the price of the token if they no longer own it", async function () {
-      try {
-        const asOne = connectAsUser(context.users.one, context);
-        await asOne.setApprovalToBuy(context.users.three.address, tokenId);
-        const asThree = connectAsUser(context.users.three, context);
-        await asThree.buy(tokenId, {
-          value: tokenPrice,
-        });
-        await asOne.setCurrentPrice(tokenPrice, tokenId);
-      } catch (e) {
-        const message = new String(e);
-        console.log({ message });
-        expect(message.includes("you are not the owner of the art")).to.be.true;
-      }
-    });
     it("cannot buy the token with an incorrect amount", async function () {
-      const asOne = connectAsUser(context.users.one, context);
-      await asOne.setApprovalToBuy(context.users.three.address, tokenId);
       const asThree = connectAsUser(context.users.three, context);
       try {
         await asThree.buy(tokenId, {
@@ -142,28 +116,16 @@ describe("SongOrAlbumNFT", function () {
           .true;
       }
     });
-    it("cannot change the price of the token", async function () {
+    it("cannot set approval to mint tokens if not hashtune", async function () {
       const asThree = connectAsUser(context.users.three, context);
       try {
-        await asThree.setCurrentPrice(tokenPrice, tokenId);
+        await asThree.approveArtist(context.users.four.address);
       } catch (e) {
         const message = new String(e);
-        expect(message.includes("you are not the owner of the art")).to.be.true;
-      }
-    });
-    it("cannot set approval to buy the token", async function () {
-      const asThree = connectAsUser(context.users.three, context);
-      try {
-        await asThree.setApprovalToBuy(context.users.four.address, tokenId);
-      } catch (e) {
-        const message = new String(e);
-        expect(message.includes("cannot set approval if not token owner")).to.be
-          .true;
+        expect(message.includes("caller is not the owner")).to.be.true;
       }
     });
     it("can transfer tokens out during a sale", async () => {
-      const asOne = connectAsUser(context.users.one, context);
-      await asOne.setApprovalToBuy(context.users.two.address, tokenId);
       const asTwo = connectAsUser(context.users.two, context);
       await asTwo.buy(tokenId, {
         value: tokenPrice,
@@ -175,8 +137,6 @@ describe("SongOrAlbumNFT", function () {
       expect(balanceAfterFirstTransaction._hex).to.equal("0x00");
     });
     it("can transfer tokens in during a sale", async () => {
-      const asOne = connectAsUser(context.users.one, context);
-      await asOne.setApprovalToBuy(context.users.two.address, tokenId);
       const asTwo = connectAsUser(context.users.two, context);
       await asTwo.buy(tokenId, {
         value: tokenPrice,
@@ -189,8 +149,6 @@ describe("SongOrAlbumNFT", function () {
     });
     // TODO: Fix
     it("can transfer funds in during a sale", async () => {
-      const asOne = connectAsUser(context.users.one, context);
-      await asOne.setApprovalToBuy(context.users.two.address, tokenId);
       const asTwo = connectAsUser(context.users.two, context);
       const ownerBefore = await prov.getBalance(context.users.one.address);
       await asTwo.buy(tokenId, {
@@ -206,8 +164,6 @@ describe("SongOrAlbumNFT", function () {
       expect(ownerAfter).to.be.equal(ownerBefore.add(amount));
     });
     it("can transfer funds out during a sale", async () => {
-      const asOne = connectAsUser(context.users.one, context);
-      await asOne.setApprovalToBuy(context.users.three.address, tokenId);
       const asThree = connectAsUser(context.users.three, context);
       const buyerBefore = await prov.getBalance(context.users.three.address);
       const transaction = await asThree.buy(tokenId, {
@@ -223,8 +179,6 @@ describe("SongOrAlbumNFT", function () {
       );
     });
     it("can transfer royalties during a sale", async () => {
-      const asOne = connectAsUser(context.users.one, context);
-      await asOne.setApprovalToBuy(context.users.three.address, tokenId);
       const asThree = connectAsUser(context.users.three, context);
       const hashtuneBeforeOne = await prov.getBalance(
         context.users.one.address
@@ -242,15 +196,6 @@ describe("SongOrAlbumNFT", function () {
         hashtuneBeforeOne.add(tokenPrice.sub(royaltyFeature))
       );
       expect(featureAfterOne).to.be.equal(featureBeforeOne.add(royaltyFeature));
-    });
-    it("cannot change the single URI of the contracts tokens", async function () {
-      const asTwo = connectAsUser(context.users.two, context);
-      try {
-        await asTwo.setURI("changed");
-      } catch (e) {
-        const message = new String(e);
-        expect(message.includes("caller is not the owner")).to.be.true;
-      }
     });
   });
 });
