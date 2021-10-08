@@ -255,22 +255,22 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
     function endAuction(uint256 tokenId) public
         onlyNftOwner(tokenId) onlyNotIdle(tokenId) onlyNotForSale(tokenId) {
         uint256 currentAuctionNum = totalAuctions[tokenId];
-        address payable previousOwner = arts[tokenId].currentOwner;
-        arts[tokenId].currentOwner = bids[tokenId][currentAuctionNum].currentHighBider;
-        bytes memory data;
         arts[tokenId].status = DataModel.ArtStatus.idle;
-        if(bids[tokenId][currentAuctionNum].endTime == 0) {
-            if(bids[tokenId][currentAuctionNum].reservePrice > 0) {
-                require(bids[tokenId][currentAuctionNum].currentHigh > bids[tokenId][currentAuctionNum].reservePrice, "can`t end ongoing time based auction");
+
+        if(bids[tokenId][currentAuctionNum].currentHigh != 0) {
+
+            address payable previousOwner = arts[tokenId].currentOwner;
+            arts[tokenId].currentOwner = bids[tokenId][currentAuctionNum].currentHighBider;
+            bytes memory data;
+
+            if(bids[tokenId][currentAuctionNum].endTime == 0) {
+                _safeTransferFrom(previousOwner, bids[tokenId][currentAuctionNum].currentHighBider, tokenId, 1, data);
+                handleAuctionPayout(tokenId, previousOwner);
             } else {
+                require(bids[tokenId][currentAuctionNum].endTime < block.timestamp, "can`t end ongoing time based auction");
                 _safeTransferFrom(previousOwner, bids[tokenId][currentAuctionNum].currentHighBider, tokenId, 1, data);
                 handleAuctionPayout(tokenId, previousOwner);
             }
-        } else {
-            //security/no-
-            require(bids[tokenId][currentAuctionNum].endTime < block.timestamp, "can`t end ongoing time based auction");
-            _safeTransferFrom(previousOwner, bids[tokenId][currentAuctionNum].currentHighBider, tokenId, 1, data);
-            handleAuctionPayout(tokenId, previousOwner);
         }
         emit EndAuction(
             tokenId,
@@ -317,8 +317,9 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
             balance = bidMoneyPoolCalculator(tokenId, currentAuctionNum - 1, msg.sender);
             uint256 currentAuctionBalance = bidMoneyPool[msg.sender][tokenId][currentAuctionNum];
             require(currentAuctionBalance == 0 || balance > 0, "Can't withdraw money from on going auction");
-        } else {
-            balance = bidMoneyPoolCalculator(tokenId, currentAuctionNum,  msg.sender);
+        }
+        if(arts[tokenId].status != DataModel.ArtStatus.forAuction) {
+            balance = bidMoneyPoolCalculator(tokenId, currentAuctionNum, msg.sender);
         }
         require(balance > 0, "you dont have any money in the biding pool");
         payable(msg.sender).transfer(balance);

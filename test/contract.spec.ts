@@ -29,7 +29,7 @@ describe("SongOrAlbumNFT", function () {
       "http://blank",
       2,
       2,
-      true
+      10
     )) as SongOrAlbumNFT;
     // Deploy the contract
     await SOA.deployed();

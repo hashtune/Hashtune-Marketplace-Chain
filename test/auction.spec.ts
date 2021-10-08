@@ -29,7 +29,7 @@ describe("auction", async () => {
       "http://blank",
       2,
       2,
-      true
+      10
     )) as SongOrAlbumNFT;
     // Deploy the contract
     await SOA.deployed();
@@ -103,7 +103,7 @@ describe("auction", async () => {
         const message = new String(e);
         expect(
           message.includes(
-            "bid amount should be greator than the current highest"
+            "bid amount should be greater or equal to the reserved price"
           )
         ).to.be.true;
       }
@@ -119,7 +119,7 @@ describe("auction", async () => {
         const message = new String(e);
         expect(
           message.includes(
-            "bid amount should be greator than the current highest"
+            "bid amount should be greater than the current highest"
           )
         ).to.be.true;
       }
@@ -382,7 +382,7 @@ describe("auction", async () => {
         const message = new String(e);
         expect(
           message.includes(
-            "bid amount should be greator than the current highest"
+            "bid amount should be greater than the current highest"
           )
         ).to.be.true;
       }
@@ -399,7 +399,7 @@ describe("auction", async () => {
         const message = new String(e);
         expect(
           message.includes(
-            "bid amount should be greator than the current highest"
+            "bid amount should be greater than the current highest"
           )
         ).to.be.true;
       }
