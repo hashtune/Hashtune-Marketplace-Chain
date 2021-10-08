@@ -212,7 +212,6 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
         uint256 newAuctionNum = ++totalAuctions[tokenId];
         arts[tokenId].status = DataModel.ArtStatus.forAuction;
         bids[tokenId][newAuctionNum].reservePrice = reservePrice;
-        bids[tokenId][newAuctionNum].currentHigh = reservePrice;
         emit NewAuction(tokenId, newAuctionNum, bids[tokenId][newAuctionNum].reservePrice);
     }
 
@@ -224,14 +223,22 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
     function placeBid(uint256 tokenId)
         public payable onlyNotNftOwner(tokenId) onlyNotIdle(tokenId) onlyNotForSale(tokenId) {
 
+        require(msg.value > 0, "bid amount should be greater than zero");
         uint256 currentAuctionNum = totalAuctions[tokenId];
         uint256 newBidSum = msg.value + bidMoneyPool[msg.sender][tokenId][currentAuctionNum];
-        require(newBidSum > bids[tokenId][currentAuctionNum].currentHigh, "bid amount should be greator than the current highest");
+
         if(bids[tokenId][currentAuctionNum].reservePrice > 0 && bids[tokenId][currentAuctionNum].endTime == 0) {
             bids[tokenId][currentAuctionNum].endTime = block.timestamp + auctionTimeLimit;
         }
+
         uint256 endTime = bids[tokenId][currentAuctionNum].endTime;
         if(endTime == 0 || block.timestamp < endTime) {
+            if(bids[tokenId][currentAuctionNum].reservePrice > 0 && bids[tokenId][currentAuctionNum].currentHigh == 0) {
+                require(newBidSum >= bids[tokenId][currentAuctionNum].reservePrice, "bid amount should be greater or equal to the reserved price");
+            }
+            else {
+                require(newBidSum > bids[tokenId][currentAuctionNum].currentHigh, "bid amount should be greater than the current highest");
+            }
             bidMoneyPool[msg.sender][tokenId][currentAuctionNum] += msg.value;
             bids[tokenId][currentAuctionNum].currentHigh = newBidSum;
             bids[tokenId][currentAuctionNum].currentHighBider = payable(msg.sender);
@@ -257,6 +264,7 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
             _safeTransferFrom(previousOwner, bids[tokenId][currentAuctionNum].currentHighBider, tokenId, 1, data);
             handleAuctionPayout(tokenId, previousOwner);
         } else {
+            //security/no-
             require(bids[tokenId][currentAuctionNum].endTime < block.timestamp, "can`t end ongoing time based auction");
             _safeTransferFrom(previousOwner, bids[tokenId][currentAuctionNum].currentHighBider, tokenId, 1, data);
             handleAuctionPayout(tokenId, previousOwner);
