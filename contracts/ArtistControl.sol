@@ -21,7 +21,7 @@ contract ArtistControl is Ownable {
 
     /**
     * @dev Approve an artist for minting NFTs
-    * @param address of the artist to approve
+    * @param artist address of the artist to approve
     */
     function approveArtist(address artist) public onlyOwner {
         approvedArtists[artist] = true;
