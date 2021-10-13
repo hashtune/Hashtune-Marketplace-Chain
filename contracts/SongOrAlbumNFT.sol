@@ -342,4 +342,28 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
         }
         return balance;
     }
+
+    /**
+    * @dev Overrides the ERC1155 transfer function to disallow transfers with out payments
+    */
+    function safeTransferFrom(
+        address from,
+        address to,
+        uint256 id,
+        uint256 amount,
+        bytes memory data
+    ) public override onlyOwner {
+    }
+
+    /**
+    * @dev Overrides the ERC1155 batch transfer function to disallow transfers with out payments
+    */
+    function safeBatchTransferFrom(
+        address from,
+        address to,
+        uint256[] memory ids,
+        uint256[] memory amounts,
+        bytes memory data
+    ) public override onlyOwner {
+    }
 }
