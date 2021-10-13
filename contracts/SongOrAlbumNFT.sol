@@ -344,6 +344,7 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
     }
 
     /**
+    * @notice it's not finalized
     * @dev Overrides the ERC1155 transfer function to disallow transfers with out payments
     */
     function safeTransferFrom(
@@ -356,6 +357,7 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
     }
 
     /**
+    * @notice it's not finalized
     * @dev Overrides the ERC1155 batch transfer function to disallow transfers with out payments
     */
     function safeBatchTransferFrom(

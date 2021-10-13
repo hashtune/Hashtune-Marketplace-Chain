@@ -153,6 +153,15 @@ describe("auction", async () => {
           .to.be.true;
       }
     });
+    it("can end Auction before reserve price is met", async () => {
+      await context.soa.startAuction(1, tokenPrice);
+      const res = await context.soa.endAuction(1); 
+      const receipt = prov.getTransactionReceipt(res.hash);
+      const art = await context.soa.arts(1);
+      expect((await receipt).status).equals(1);
+      expect(art.currentOwner).equals(context.users.one.address);
+      expect(art.status).equals(0);
+    });
     it("cannot end an auction that I created when the reserve price is met and 24hours has not passed", async () => {
       await context.soa.startAuction(1, tokenPrice);
       const asTwo = connectAsUser(context.users.two, context);
@@ -445,6 +454,15 @@ describe("auction", async () => {
           )
         ).to.be.true;
       }
+    });
+    it("can end Auction before any bid is placed", async () => {
+      await context.soa.startAuction(1, tokenPrice);
+      const res = await context.soa.endAuction(1); 
+      const receipt = prov.getTransactionReceipt(res.hash);
+      const art = await context.soa.arts(1);
+      expect((await receipt).status).equals(1);
+      expect(art.currentOwner).equals(context.users.one.address);
+      expect(art.status).equals(0);
     });
     it("can end an auction that I created whenever I want as long as there is at least one bid", async () => {
       const asOne = connectAsUser(context.users.one, context);
