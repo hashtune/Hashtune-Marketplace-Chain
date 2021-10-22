@@ -6,7 +6,7 @@
   "scripts": {
     "dev:start": "ts-node-dev --watch -- ./scripts/*",
     "lint": "tslint --config tslint.json --project tsconfig.json",
-    "deploy:testnet": "dotenv -e .env.testnet  -- npx hardhat run --network testnet ./scripts/deploy.ts",
+    "deploy:testnet": "dotenv -e .env.testnet  -- npx hardhat --network testnet ./scripts/deploy.ts",
     "test:ci": "dotenv -e .env.testnet -- npx hardhat test --network testnet ./test/ci.spec.ts",
     "test:local": "dotenv -e .env.local --  npx hardhat test --network localhost ./test/auction.spec.ts ./test/contract.spec.ts",
     "test:hardhat": "dotenv -e .env.local --  npx hardhat test --network hardhat ./test/contract.spec.ts ./test/auction.spec.ts",
@@ -17,7 +17,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@nomiclabs/hardhat-ethers": "npm:hardhat-deploy-ethers@^0.3.0-beta.11",
+    "@nomiclabs/hardhat-ethers": "^2.0.2",
     "@nomiclabs/hardhat-waffle": "^2.0.1",
     "@typechain/ethers-v5": "^7.0.1",
     "@typechain/hardhat": "^2.3.0",
@@ -27,7 +27,7 @@
     "chai": "^4.3.4",
     "eslint": "7.32.0",
     "ethereum-waffle": "^3.4.0",
-    "ethers": "^5.5.1",
+    "ethers": "^5.4.6",
     "hardhat": "^2.6.1",
     "mocha-chai-jest-snapshot": "^1.1.3",
     "prettier": "2.0.5",
