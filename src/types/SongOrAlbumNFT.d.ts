@@ -37,6 +37,7 @@ interface SongOrAlbumNFTInterface extends ethers.utils.Interface {
     "getRoleAdmin(bytes32)": FunctionFragment;
     "grantRole(bytes32,address)": FunctionFragment;
     "hasRole(bytes32,address)": FunctionFragment;
+    "hashtuneFeePool()": FunctionFragment;
     "isApprovedForAll(address,address)": FunctionFragment;
     "owner()": FunctionFragment;
     "placeBid(uint256)": FunctionFragment;
@@ -123,6 +124,10 @@ interface SongOrAlbumNFTInterface extends ethers.utils.Interface {
   encodeFunctionData(
     functionFragment: "hasRole",
     values: [BytesLike, string]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "hashtuneFeePool",
+    values?: undefined
   ): string;
   encodeFunctionData(
     functionFragment: "isApprovedForAll",
@@ -236,6 +241,10 @@ interface SongOrAlbumNFTInterface extends ethers.utils.Interface {
   ): Result;
   decodeFunctionResult(functionFragment: "grantRole", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "hasRole", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "hashtuneFeePool",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "isApprovedForAll",
     data: BytesLike
@@ -508,6 +517,8 @@ export class SongOrAlbumNFT extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[boolean]>;
 
+    hashtuneFeePool(overrides?: CallOverrides): Promise<[BigNumber]>;
+
     isApprovedForAll(
       account: string,
       operator: string,
@@ -724,6 +735,8 @@ export class SongOrAlbumNFT extends BaseContract {
     overrides?: CallOverrides
   ): Promise<boolean>;
 
+  hashtuneFeePool(overrides?: CallOverrides): Promise<BigNumber>;
+
   isApprovedForAll(
     account: string,
     operator: string,
@@ -930,6 +943,8 @@ export class SongOrAlbumNFT extends BaseContract {
       account: string,
       overrides?: CallOverrides
     ): Promise<boolean>;
+
+    hashtuneFeePool(overrides?: CallOverrides): Promise<BigNumber>;
 
     isApprovedForAll(
       account: string,
@@ -1318,6 +1333,8 @@ export class SongOrAlbumNFT extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
+    hashtuneFeePool(overrides?: CallOverrides): Promise<BigNumber>;
+
     isApprovedForAll(
       account: string,
       operator: string,
@@ -1515,6 +1532,8 @@ export class SongOrAlbumNFT extends BaseContract {
       account: string,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
+
+    hashtuneFeePool(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     isApprovedForAll(
       account: string,

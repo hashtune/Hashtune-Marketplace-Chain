@@ -21,7 +21,7 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
     uint256 hashtuneShare = 2; //represents 2%
     uint256 creatorsRoyaltyReserve = 2;
     uint256 auctionTimeLimit = 1 days;
-    uint256 hashtuneFeePool;
+    uint256 public hashtuneFeePool;
 
     mapping(uint256 => DataModel.ArtInfo) public arts; // maps tokenId to artInfo
     mapping(uint256 => mapping(uint256 => DataModel.AuctionInfo)) public bids; //maps tokenId to auctionId to auctionInfo

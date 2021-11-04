@@ -159,8 +159,9 @@ describe("SongOrAlbumNFT", function () {
       const royaltyCreator = tokenPrice.mul(2).div(100).mul(90).div(100);
       const royaltyFeature = tokenPrice.mul(2).div(100).mul(10).div(100);
       const ownerAfter = await prov.getBalance(context.users.one.address);
+      const hashtuneShare = tokenPrice.mul(2).div(100);
       // We only subtract royaltyFeature because address one is hashtune and also the original creator and owner
-      const amount = tokenPrice.sub(royaltyFeature);
+      const amount = tokenPrice.sub(royaltyFeature).sub(royaltyCreator).sub(hashtuneShare);
       expect(ownerAfter).to.be.equal(ownerBefore.add(amount));
     });
     it("can transfer funds out during a sale", async () => {
@@ -191,12 +192,15 @@ describe("SongOrAlbumNFT", function () {
       const royalty = tokenPrice.mul(2).div(100);
       const royaltyCreator = tokenPrice.mul(2).div(100).mul(90).div(100);
       const royaltyFeature = tokenPrice.mul(2).div(100).mul(10).div(100);
-      const hashtuneAfterOne = await prov.getBalance(context.users.one.address);
-      const featureAfterOne = await prov.getBalance(context.users.two.address);
-      expect(hashtuneAfterOne).to.be.equal(
-        hashtuneBeforeOne.add(tokenPrice.sub(royaltyFeature))
-      );
-      expect(featureAfterOne).to.be.equal(featureBeforeOne.add(royaltyFeature));
+      const hashtuneShare = tokenPrice.mul(2).div(100);
+      const royaltyCreatorPool = await asThree.royaltyPool(context.users.one.address);
+      const royaltyHastunePool = await asThree.hashtuneFeePool();
+      const royaltyFeaturePool = await asThree.royaltyPool(context.users.two.address);
+
+      expect(royaltyFeature).to.be.equal(royaltyFeaturePool);
+      expect(royaltyCreator).to.be.equal(royaltyCreatorPool);
+      expect(hashtuneShare).to.be.equal(royaltyHastunePool);
     });
   });
 });
+
