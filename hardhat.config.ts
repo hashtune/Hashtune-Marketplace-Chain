@@ -68,7 +68,7 @@ module.exports = {
       gasPrice: 20000000000,
       accounts: {
         mnemonic:
-          "movie strategy exhaust aspect taxi feed lend car nominee spin subway cupboard",
+          "royal priority wet social fiscal outdoor eagle bomb toe turn lawn pelican",
       },
     },
     mainnet: {
