@@ -45,6 +45,7 @@ interface SongOrAlbumNFTInterface extends ethers.utils.Interface {
     "revokeArtistApproval(address)": FunctionFragment;
     "revokeArtistBatchApproval(address[])": FunctionFragment;
     "revokeRole(bytes32,address)": FunctionFragment;
+    "royaltyPool(address)": FunctionFragment;
     "safeBatchTransferFrom(address,address,uint256[],uint256[],bytes)": FunctionFragment;
     "safeTransferFrom(address,address,uint256,uint256,bytes)": FunctionFragment;
     "setApprovalForAll(address,bool)": FunctionFragment;
@@ -55,6 +56,8 @@ interface SongOrAlbumNFTInterface extends ethers.utils.Interface {
     "transferOwnership(address)": FunctionFragment;
     "uri(uint256)": FunctionFragment;
     "withdrawBidMoney(uint256)": FunctionFragment;
+    "withdrawHastuneFees()": FunctionFragment;
+    "withdrawRoyalty()": FunctionFragment;
   };
 
   encodeFunctionData(
@@ -150,6 +153,7 @@ interface SongOrAlbumNFTInterface extends ethers.utils.Interface {
     functionFragment: "revokeRole",
     values: [BytesLike, string]
   ): string;
+  encodeFunctionData(functionFragment: "royaltyPool", values: [string]): string;
   encodeFunctionData(
     functionFragment: "safeBatchTransferFrom",
     values: [string, string, BigNumberish[], BigNumberish[], BytesLike]
@@ -186,6 +190,14 @@ interface SongOrAlbumNFTInterface extends ethers.utils.Interface {
   encodeFunctionData(
     functionFragment: "withdrawBidMoney",
     values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "withdrawHastuneFees",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "withdrawRoyalty",
+    values?: undefined
   ): string;
 
   decodeFunctionResult(
@@ -248,6 +260,10 @@ interface SongOrAlbumNFTInterface extends ethers.utils.Interface {
   ): Result;
   decodeFunctionResult(functionFragment: "revokeRole", data: BytesLike): Result;
   decodeFunctionResult(
+    functionFragment: "royaltyPool",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "safeBatchTransferFrom",
     data: BytesLike
   ): Result;
@@ -279,6 +295,14 @@ interface SongOrAlbumNFTInterface extends ethers.utils.Interface {
   decodeFunctionResult(functionFragment: "uri", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "withdrawBidMoney",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "withdrawHastuneFees",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "withdrawRoyalty",
     data: BytesLike
   ): Result;
 
@@ -523,6 +547,8 @@ export class SongOrAlbumNFT extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
+    royaltyPool(arg0: string, overrides?: CallOverrides): Promise<[BigNumber]>;
+
     safeBatchTransferFrom(
       from: string,
       to: string,
@@ -578,6 +604,14 @@ export class SongOrAlbumNFT extends BaseContract {
 
     withdrawBidMoney(
       tokenId: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
+    withdrawHastuneFees(
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
+    withdrawRoyalty(
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
   };
@@ -729,6 +763,8 @@ export class SongOrAlbumNFT extends BaseContract {
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
+  royaltyPool(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
+
   safeBatchTransferFrom(
     from: string,
     to: string,
@@ -784,6 +820,14 @@ export class SongOrAlbumNFT extends BaseContract {
 
   withdrawBidMoney(
     tokenId: BigNumberish,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
+  withdrawHastuneFees(
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
+  withdrawRoyalty(
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
@@ -921,6 +965,8 @@ export class SongOrAlbumNFT extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
+    royaltyPool(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
+
     safeBatchTransferFrom(
       from: string,
       to: string,
@@ -978,6 +1024,10 @@ export class SongOrAlbumNFT extends BaseContract {
       tokenId: BigNumberish,
       overrides?: CallOverrides
     ): Promise<void>;
+
+    withdrawHastuneFees(overrides?: CallOverrides): Promise<void>;
+
+    withdrawRoyalty(overrides?: CallOverrides): Promise<void>;
   };
 
   filters: {
@@ -1307,6 +1357,8 @@ export class SongOrAlbumNFT extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
+    royaltyPool(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
+
     safeBatchTransferFrom(
       from: string,
       to: string,
@@ -1362,6 +1414,14 @@ export class SongOrAlbumNFT extends BaseContract {
 
     withdrawBidMoney(
       tokenId: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
+    withdrawHastuneFees(
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
+    withdrawRoyalty(
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
   };
@@ -1495,6 +1555,11 @@ export class SongOrAlbumNFT extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
+    royaltyPool(
+      arg0: string,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
     safeBatchTransferFrom(
       from: string,
       to: string,
@@ -1553,6 +1618,14 @@ export class SongOrAlbumNFT extends BaseContract {
 
     withdrawBidMoney(
       tokenId: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    withdrawHastuneFees(
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    withdrawRoyalty(
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
   };
