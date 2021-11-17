@@ -1,38 +1,65 @@
-## Development
+![](.github/assets/images/cover.png)
 
-`npm install`
+# **Hashtune Marketplace Chain**
 
-`npx hardhat watch compilation` to watch changes to the contract (contracts/SongOrAlbumNFT.sol)
+![GitHub repo size](https://img.shields.io/github/repo-size/hashtune/Hashtune-Marketplace-Client?style=flat-square)
+![Lines of code](https://img.shields.io/tokei/lines/github/hashtune/Hashtune-Marketplace-Client?style=flat-square)
+![GitHub top language](https://img.shields.io/github/languages/top/hashtune/Hashtune-Marketplace-Client?style=flat-square)
+![GitHub last commit](https://img.shields.io/github/last-commit/hashtune/Hashtune-Marketplace-Client?style=flat-square)
+
+---
+
+## Architecture 🏛
+
+The architecutre consists of 3 repositories:
+
+1. Client Application https://github.com/hashtune/Hashtune-Marketplace-Client
+2. Server https://github.com/hashtune/Hashtune-Marketplace-Server
+3. Smart Contract (currently deployed to Binance Test Network) https://github.com/hashtune/Hashtune-Marketplace-Chain
+
+![](.github/assets/images/architecture.png)
+
+Each repository has it's own steps for set up, development and testing.
+
+---
+
+## Setup 📦
+
+`npm install` to install dependencies
+
+#### .env.local
+
+- Used with local tests with hardhat
+
+#### .env.testnet
+
+- Used with public test net tests
+- The `CONTRACT=` variable was generated after running `npm run deploy:testnet`, it is the address that the contract was deployed at.
+- The 3 other dummy address were copied from the addresses that were printed in the previous step. These accounts were generated using the mnemonic set in `harhat.config.ts` under networks testnet accounts. `ONE=` is the address of the contract deployer.
+- To import the public key addresses from the previous step into MetaMask, you can use `ethers.Wallet.fromMnemonic(mnemonic);` to access the private key.
+
+---
+
+## Development 🚀
+
+`npx hardhat watch compilation` to watch changes to /contracts/\*
 
 In another terminal window:
 
-`npm run dev:start` to run the script that calls the functions (scripts/songOrAlbumNFT.ts)
+`npm run dev:start` to watch changes to /scripts/\*.
 
-## Testing
+---
 
-`npx hardhat node` starts Hardhat Network, and expose it as a JSON-RPC and WebSocket server, can connect to it via http://localhost:8545
+## Testing 🧪
 
-`npm run test:local` in another terminal
+#### Locally on the Hardhat Network
 
-`npm run test:local:ws` to listen for events locally in another terminal, need to manually replace the process.env.CONTRACT with the address of a deployed contract
+`npm run test:hardhat` to run the tests on hardhats network
 
 `UPDATE_SNAPSHOT=1 npx hardhat test` to update snapshots
 
-### Testnet
+#### Binance Test Network
 
-`npm run test:ci:ws` to listen for events on the test net
-
-`npm run test:ci` to run the tests on the test net in another terminal
-
-## Deploying
-
-Get binance extension
-Make a dummy address
-Copy password into .secret.json
-Get 1BNB from https://testnet.binance.org/faucet-smart
-https://docs.binance.org/smart-chain/developer/rpc.html for the RPC endpoint
-https://testnet.bscscan.com/ with the public key used to deploy to view the deployment
-
-TODO:
-Run the tests on every PR with localhost
-and with public test network
+- Assuming you have run `npm run deploy:testnet` (Note that you can change the length of time for each auction via a parameter inside the deploy.ts script) and then updated the contract address and three dummy addresses inside `.env.testnet` if necessary, you can run `npm test:ci`. You can also add tests to `ci.spec.ts`
+- Note that you need to have binance test funds in these `.env.testnet` accounts in order to call contract functions. You can get that from https://testnet.binance.org/faucet-smart
+- You can check the status of transactions on https://testnet.bscscan.com/

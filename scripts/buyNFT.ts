@@ -14,53 +14,63 @@ async function main() {
   //User flow for the auction functionalities
   const SongOrAlbum = await hre.ethers.getContractFactory("SongOrAlbumNFT");
   const contract: SongOrAlbumNFT = (await SongOrAlbum.deploy(
-    "",2,10
+    "",
+    2,
+    2,
+    10
   )) as SongOrAlbumNFT;
   await contract.deployed();
 
-  contract.on("TokenCreated", (by, tokenId, creators, creatorsRoyalty, status, digest, hashFunction, size) => {
-    console.log(
-      "Token created!",
-      "By: ",
+  contract.on(
+    "TokenCreated",
+    (
       by,
-      "Token ID:",
       tokenId,
-      "Creators:",
       creators,
-      "Creators Share:",
       creatorsRoyalty,
-      "Status:",
-      status, 
-      "Digest:",
-      digest, 
-      "Hash Function:",
+      status,
+      digest,
       hashFunction,
-      "Size:" ,
       size
-    );
-  });
-
-  contract.on("TokenPurchased", (by, tokenId) => {
-    console.log(
+    ) => {
+      console.log(
+        "Token created!",
         "By: ",
         by,
-        "tokenId: ",
-        tokenId
+        "Token ID:",
+        tokenId,
+        "Creators:",
+        creators,
+        "Creators Share:",
+        creatorsRoyalty,
+        "Status:",
+        status,
+        "Digest:",
+        digest,
+        "Hash Function:",
+        hashFunction,
+        "Size:",
+        size
       );
-    });
+    }
+  );
+
+  contract.on("TokenPurchased", (by, tokenId) => {
+    console.log("By: ", by, "tokenId: ", tokenId);
+  });
 
   const [hashtune, artist1, artist2, collector] = await ethers.getSigners();
 
   console.log(
-      "Balance before: ",
-      "Hastune Balance: ",
-      (ethers.utils.formatEther(await provider.getBalance(add1))).toString(),
-      "Artist 1 Balance: ",
-      (ethers.utils.formatEther(await provider.getBalance(add2))).toString(),
-      "Artist 2 Balance: ",
-      (ethers.utils.formatEther(await provider.getBalance(add3))).toString(),
-      "Collector Balance: ",
-      (ethers.utils.formatEther(await provider.getBalance(add4))).toString()
+    "Balance before: ",
+    "Hastune Balance: ",
+    ethers.utils.formatEther(await provider.getBalance(add1)).toString(),
+    "Artist 1 Balance: ",
+    ethers.utils.formatEther(await provider.getBalance(add2)).toString(),
+    "Artist 2 Balance: ",
+    ethers.utils.formatEther(await provider.getBalance(add3)).toString(),
+    "Collector Balance: ",
+    ethers.utils.formatEther(await provider.getBalance(add4)).toString()
   );
 
   await contract.approveArtist("0x70997970C51812dc3A010C7d01b50e0d17dc79C8");
@@ -69,33 +79,34 @@ async function main() {
   const contract3 = contract.connect(artist2);
   const contract4 = contract.connect(collector);
 
-  await contract2.create([add2, add3], 
-    [50, 50], 
-    1, 
-    "0x6c00000000000000000000000000000000000000000000000000000000000000", 
+  await contract2.create(
+    [add2, add3],
+    [50, 50],
+    1,
+    "0x6c00000000000000000000000000000000000000000000000000000000000000",
     ethers.utils.parseEther("1"),
-    ethers.utils.parseEther("0"), 
-    "0x6c00000000000000000000000000000000000000000000000000000000000000", 
-    1, 
-    1);
+    ethers.utils.parseEther("0"),
+    "0x6c00000000000000000000000000000000000000000000000000000000000000",
+    1,
+    1
+  );
 
-    await contract4.buy(1,{value: ethers.utils.parseEther("1")});
+  await contract4.buy(1, { value: ethers.utils.parseEther("1") });
 
-    await contract3.buy(1,{value: ethers.utils.parseEther("1")});
+  await contract3.buy(1, { value: ethers.utils.parseEther("1") });
 
-    console.log(
-        "Balance after: ",
-        "Hastune Balance: ",
-        (ethers.utils.formatEther(await provider.getBalance(add1))).toString(),
-        "Artist 1 Balance: ",
-        (ethers.utils.formatEther(await provider.getBalance(add2))).toString(),
-        "Artist 2 Balance: ",
-        (ethers.utils.formatEther(await provider.getBalance(add3))).toString(),
-        "Collector Balance: ",
-        (ethers.utils.formatEther(await provider.getBalance(add4))).toString(),
-        "Contract Balance: "
-    );
-
+  console.log(
+    "Balance after: ",
+    "Hastune Balance: ",
+    ethers.utils.formatEther(await provider.getBalance(add1)).toString(),
+    "Artist 1 Balance: ",
+    ethers.utils.formatEther(await provider.getBalance(add2)).toString(),
+    "Artist 2 Balance: ",
+    ethers.utils.formatEther(await provider.getBalance(add3)).toString(),
+    "Collector Balance: ",
+    ethers.utils.formatEther(await provider.getBalance(add4)).toString(),
+    "Contract Balance: "
+  );
 }
 
 main();

@@ -3,7 +3,10 @@ import hre from "hardhat";
 import { SongOrAlbumNFT } from "../src/types/SongOrAlbumNFT";
 
 async function main() {
-  //   const hastune = await hre.ethers.getSigner(process.env.ONE!);
+  const accounts = await hre.ethers.getSigners();
+  for (const account of accounts) {
+    console.log({ account });
+  }
   const SongOrAlbum = await hre.ethers.getContractFactory("SongOrAlbumNFT");
   const SOA: SongOrAlbumNFT = (await SongOrAlbum.deploy(
     "http://blank",
