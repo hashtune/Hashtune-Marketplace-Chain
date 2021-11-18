@@ -13,41 +13,58 @@ async function main() {
   //User flow for the auction functionalities
   const SongOrAlbum = await hre.ethers.getContractFactory("SongOrAlbumNFT");
   const user: SongOrAlbumNFT = (await SongOrAlbum.deploy(
-    "",2,10
+    "",
+    2,
+    2,
+    10
   )) as SongOrAlbumNFT;
   await user.deployed();
 
-  user.on("TokenCreated", (by, tokenId, creators, creatorsRoyalty, status, digest, hashFunction, size) => {
-    console.log(
-      "Token created!",
-      "By: ",
+  user.on(
+    "TokenCreated",
+    (
       by,
-      "Token ID:",
       tokenId,
-      "Createors:",
       creators,
-      "Creators Share:",
       creatorsRoyalty,
-      "Status:",
-      status, 
-      "Digest:",
-      digest, 
-      "Hash Function:",
+      status,
+      digest,
       hashFunction,
-      "Size:" ,
       size
-    );
-  });
+    ) => {
+      console.log(
+        "Token created!",
+        "By: ",
+        by,
+        "Token ID:",
+        tokenId,
+        "Createors:",
+        creators,
+        "Creators Share:",
+        creatorsRoyalty,
+        "Status:",
+        status,
+        "Digest:",
+        digest,
+        "Hash Function:",
+        hashFunction,
+        "Size:",
+        size
+      );
+    }
+  );
 
-  await user.create([add1, add2], 
-    [2, 2], 
-    0, 
-    "0x6c00000000000000000000000000000000000000000000000000000000000000", 
-    ethers.utils.parseEther("0.005"), 
-    "0x6c00000000000000000000000000000000000000000000000000000000000000", 
-    1, 
-    1);
-
+  await user.create(
+    [add1, add2],
+    [50, 50],
+    0,
+    "0x6c00000000000000000000000000000000000000000000000000000000000000",
+    ethers.utils.parseEther("0.005"),
+    ethers.utils.parseEther("0"),
+    "0x6c00000000000000000000000000000000000000000000000000000000000000",
+    1,
+    1
+  );
 }
 
 main();

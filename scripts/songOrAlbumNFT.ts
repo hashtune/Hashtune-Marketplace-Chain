@@ -15,7 +15,10 @@ async function main() {
   // Deploy
   const SongOrAlbum = await hre.ethers.getContractFactory("SongOrAlbumNFT");
   const SOA: SongOrAlbumNFT = (await SongOrAlbum.deploy(
-    "http://blank"
+    "http://blank",
+    2,
+    2,
+    10
   )) as SongOrAlbumNFT;
   await SOA.deployed();
 
@@ -59,10 +62,15 @@ async function main() {
   console.log(
     "Minting...",
     await SOA.create(
-      [ownerAddress, thirdAddress], // royalty receivers
-      1138,
-      [],
-      ethers.utils.parseEther("0.005") // price
+      [ownerAddress, thirdAddress],
+      [50, 50],
+      2,
+      "0x6c00000000000000000000000000000000000000000000000000000000000000",
+      ethers.utils.parseEther("1"),
+      ethers.utils.parseEther("0"),
+      "0x6c00000000000000000000000000000000000000000000000000000000000000",
+      1,
+      1
     )
   );
 
@@ -85,13 +93,6 @@ async function main() {
 
   const [owner, spender, holder] = await ethers.getSigners();
 
-  // Increase the price to 0.006 ether
-  await SOA.setCurrentPrice(ethers.utils.parseEther("0.006"), 1138);
-
-  // Address 2 buys token from address 1
-  // Current token owner approves purchase
-  await SOA.setApprovalToBuy(spender.address, 1138);
-
   // Execute as buyer 2
   const buyer = SOA.connect(spender);
   await buyer.buy(1138, {
@@ -105,12 +106,6 @@ async function main() {
 
   // Log account balances after transfer 1
   console.log("balanceBuyer", (await prov.getBalance(buyerAddress)).toString());
-
-  // Decrease the price to 0.004 ether
-  await buyer.setCurrentPrice(ethers.utils.parseEther("0.004"), 1138);
-
-  // Address 3 buys token from address 2
-  await buyer.setApprovalToBuy(holder.address, 1138);
 
   // Execute as address 3
   const buyerTwo = buyer.connect(holder);

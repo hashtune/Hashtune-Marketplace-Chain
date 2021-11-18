@@ -54,7 +54,7 @@ module.exports = {
     externalArtifacts: ["externalArtifacts/*.json"], // optional array of glob patterns with external artifacts to process (for example external libs from node_modules)
   },
   gasReporter: {
-    coinmarketcap: process.env.COINMARKETCAPAPI
+    coinmarketcap: process.env.COINMARKETCAPAPI,
   },
   defaultNetwork: "hardhat",
   networks: {

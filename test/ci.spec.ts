@@ -35,13 +35,6 @@ describe("ci", function () {
       },
     };
   });
-  it("can change the price of the token", async function () {
-    const result = await context.soa.setCurrentPrice(tokenPrice, tokenId, {
-      gasLimit: 100000,
-    });
-    console.log({ result });
-    expect(result.gasLimit._hex).to.not.be.undefined;
-  });
   // TODO: fix
   it.skip("can sell the token if they own it", async function () {
     await context.soa.setApprovalToBuy(context.users.three.address, tokenId);
