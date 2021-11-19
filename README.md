@@ -1,7 +1,10 @@
 ![](.github/assets/images/cover.png)
 
-# **Hashtune Marketplace Chain**
+<div align="center">
 
+# **Hashtune Marketplace Chain**
+</div>
+  
 ## Architecture 🏛
 
 The architecutre consists of 3 repositories:
