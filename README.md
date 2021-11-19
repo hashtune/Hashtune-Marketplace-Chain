@@ -1,11 +1,4 @@
-![](.github/assets/images/cover.png)
-
 # **Hashtune Marketplace Chain**
-
-![GitHub repo size](https://img.shields.io/github/repo-size/hashtune/Hashtune-Marketplace-Client?style=flat-square)
-![Lines of code](https://img.shields.io/tokei/lines/github/hashtune/Hashtune-Marketplace-Client?style=flat-square)
-![GitHub top language](https://img.shields.io/github/languages/top/hashtune/Hashtune-Marketplace-Client?style=flat-square)
-![GitHub last commit](https://img.shields.io/github/last-commit/hashtune/Hashtune-Marketplace-Client?style=flat-square)
 
 ---
 
