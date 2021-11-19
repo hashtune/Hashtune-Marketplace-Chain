@@ -1,3 +1,5 @@
+![](.github/assets/images/cover.png)
+
 # **Hashtune Marketplace Chain**
 
 ## Architecture 🏛
