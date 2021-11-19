@@ -6,9 +6,9 @@
 
 The architecutre consists of 3 repositories:
 
-1. Client Application https://github.com/hashtune/Hashtune-Marketplace-Client
-2. Server https://github.com/hashtune/Hashtune-Marketplace-Server
-3. Smart Contract (currently deployed to Binance Test Network) https://github.com/hashtune/Hashtune-Marketplace-Chain
+1. [Client Application](https://github.com/hashtune/Hashtune-Marketplace-Client)
+2. [Server](https://github.com/hashtune/Hashtune-Marketplace-Server)
+3. [Smart Contract (currently deployed to Binance Test Network)](https://github.com/hashtune/Hashtune-Marketplace-Chain)
 
 ![](.github/assets/images/architecture.png)
 
