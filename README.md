@@ -1,7 +1,5 @@
 # **Hashtune Marketplace Chain**
 
----
-
 ## Architecture 🏛
 
 The architecutre consists of 3 repositories:
