@@ -244,7 +244,6 @@ describe("auction", async () => {
         balanceBefore
           .sub(receipt1.cumulativeGasUsed.mul(receipt1.effectiveGasPrice))
           .sub(receipt2.cumulativeGasUsed.mul(receipt2.effectiveGasPrice))
-          .add(royaltyFeature)
       );
     });
     it("cannot withdraw my funds out after the auction ends if I won", async () => {
@@ -284,7 +283,6 @@ describe("auction", async () => {
         balanceBefore
           .sub(receipt1.cumulativeGasUsed.mul(receipt1.effectiveGasPrice))
           .sub(receipt2.cumulativeGasUsed.mul(receipt2.effectiveGasPrice))
-          .add(royaltyFeature)
       );
     });
     it("can receive the token if I am the last highest bidder", async () => {
@@ -308,17 +306,21 @@ describe("auction", async () => {
       await context.soa.startAuction(1, tokenPrice);
       const asTwo = connectAsUser(context.users.two, context);
       await asTwo.placeBid(1, { value: highestTokenPrice });
-      await new Promise((resolve) => setTimeout(resolve, 15000));
       const balanceBefore = await prov.getBalance(context.users.one.address);
+      await new Promise((resolve) => setTimeout(resolve, 15000));
       const transaction = await context.soa.endAuction(1);
-      const balanceAfter = await prov.getBalance(context.users.one.address);
       const receipt = await prov.getTransactionReceipt(transaction.hash);
+      const balanceAfter = await prov.getBalance(context.users.one.address);
       const royaltyFeature = highestTokenPrice.mul(2).div(100).mul(10).div(100);
+      const hashtuneShare = highestTokenPrice.mul(2).div(100);
+      const royaltyCreator = highestTokenPrice.mul(2).div(100).mul(90).div(100);
       expect(balanceAfter).to.be.equal(
         balanceBefore
           .sub(receipt.cumulativeGasUsed.mul(receipt.effectiveGasPrice))
           .add(highestTokenPrice)
           .sub(royaltyFeature)
+          .sub(hashtuneShare)
+          .sub(royaltyCreator)
       );
     });
     it("can receive royalties after the auction ends if I am the token creator", async () => {
@@ -341,8 +343,9 @@ describe("auction", async () => {
       const receipt = await prov.getTransactionReceipt(transaction.hash);
       const royaltyCreator = highestTokenPrice.mul(2).div(100).mul(90).div(100);
       const royaltyHashtune = highestTokenPrice.mul(2).div(100);
+      const royaltyFeature = highestTokenPrice.mul(2).div(100).mul(10).div(100);
       expect(oneBalanceAfter).to.be.equal(
-        oneBalanceBefore.add(royaltyCreator).add(royaltyHashtune)
+        oneBalanceBefore
       );
       expect(twoBalanceAfter).to.be.equal(
         twoBalanceBefore
@@ -350,6 +353,7 @@ describe("auction", async () => {
           .sub(receipt.cumulativeGasUsed.mul(receipt.effectiveGasPrice))
           .sub(royaltyCreator)
           .sub(royaltyHashtune)
+          .sub(royaltyFeature)
       );
     });
   });
@@ -507,11 +511,15 @@ describe("auction", async () => {
       const receipt = await prov.getTransactionReceipt(transaction.hash);
       const asOneAfter = await prov.getBalance(context.users.one.address);
       const royaltyFeature = highestTokenPrice.mul(2).div(100).mul(10).div(100);
+      const hashtuneShare = highestTokenPrice.mul(2).div(100);
+      const royaltyCreator = highestTokenPrice.mul(2).div(100).mul(90).div(100);
       expect(asOneAfter).to.be.equal(
         asOneBefore
           .sub(receipt.cumulativeGasUsed.mul(receipt.effectiveGasPrice))
           .add(highestTokenPrice)
           .sub(royaltyFeature)
+          .sub(hashtuneShare)
+          .sub(royaltyCreator)
       );
     });
     it("can receive the token if I am the last highest bidder when the auction ends", async () => {
@@ -575,23 +583,25 @@ describe("auction", async () => {
         value: lowerTokenPrice,
       });
       await asOne.endAuction(1);
-      const oneBalanceBefore = await prov.getBalance(context.users.one.address);
-      const twoBalanceBefore = await prov.getBalance(context.users.two.address);
+      const royaltyCreator1 = lowerTokenPrice.mul(2).div(100).mul(90).div(100);
+      const royaltyFeature1 = lowerTokenPrice.mul(2).div(100).mul(10).div(100);
+      const hashtuneShare1 = lowerTokenPrice.mul(2).div(100);
       // Second auction
       await asThree.startAuction(1, 0);
       const asFour = connectAsUser(context.users.four, context);
       await asFour.placeBid(1, { value: highestTokenPrice });
       await asThree.endAuction(1);
-      const oneBalanceAfter = await prov.getBalance(context.users.one.address);
-      const twoBalanceAfter = await prov.getBalance(context.users.two.address);
-      const royaltyCreator = highestTokenPrice.mul(2).div(100).mul(90).div(100);
-      const royaltyFeature = highestTokenPrice.mul(2).div(100).mul(10).div(100);
-      const hashtuneRoyalty = highestTokenPrice.mul(2).div(100);
+      const royaltyCreator2 = highestTokenPrice.mul(2).div(100).mul(90).div(100);
+      const royaltyFeature2 = highestTokenPrice.mul(2).div(100).mul(10).div(100);
+      const hashtuneShare2 = highestTokenPrice.mul(2).div(100);
+      const royaltyCreatorPool2 = await asThree.royaltyPool(context.users.one.address);
+      const royaltyHastunePool2 = await asThree.hashtuneFeePool();
+      const royaltyFeaturePool2 = await asThree.royaltyPool(context.users.two.address);
       // Hashtune royalty goes to address one aswell
-      expect(oneBalanceAfter).to.be.equal(
-        oneBalanceBefore.add(royaltyCreator).add(hashtuneRoyalty)
-      );
-      expect(twoBalanceAfter).to.be.equal(twoBalanceBefore.add(royaltyFeature));
+
+      expect(royaltyFeature1.add(royaltyFeature2)).to.be.equal(royaltyFeaturePool2);
+      expect(royaltyCreator1.add(royaltyCreator2)).to.be.equal(royaltyCreatorPool2);
+      expect(hashtuneShare1.add(hashtuneShare2)).to.be.equal(royaltyHastunePool2);
     });
   });
   describe.skip("events", () => {});

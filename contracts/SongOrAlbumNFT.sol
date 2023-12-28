@@ -21,10 +21,12 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
     uint256 hashtuneShare = 2; //represents 2%
     uint256 creatorsRoyaltyReserve = 2;
     uint256 auctionTimeLimit = 1 days;
+    uint256 public hashtuneFeePool;
 
     mapping(uint256 => DataModel.ArtInfo) public arts; // maps tokenId to artInfo
     mapping(uint256 => mapping(uint256 => DataModel.AuctionInfo)) public bids; //maps tokenId to auctionId to auctionInfo
     mapping(address => mapping(uint256 => mapping(uint256 => uint256))) public bidMoneyPool; //maps userAddress to tokenId to auctionId to money
+    mapping(address => uint256) public royaltyPool;
     mapping(uint256 => uint256) public totalAuctions; // maps tokenId to numOfAuctions
 
     // Custom Events
@@ -189,10 +191,11 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
         uint256 creatorsRoyaltyCut = amount * creatorsRoyaltyReserve / 100;
         uint256 hashtuneCut = amount * hashtuneShare / 100;
 
-        hashtuneAddress.transfer(hashtuneCut);
+        hashtuneFeePool += hashtuneCut;
+
         for(uint256 i = 0; i < arts[tokenId].creators.length; i++) {
             uint256 creatorCut = (creatorsRoyaltyCut * arts[tokenId].creatorsRoyalty[i]) / 100;
-            arts[tokenId].creators[i].transfer(creatorCut);
+            royaltyPool[arts[tokenId].creators[i]] += creatorCut;
         }
 
         beneficiary.transfer(amount - creatorsRoyaltyCut - hashtuneCut);
@@ -341,6 +344,26 @@ contract SongOrAlbumNFT is ERC1155, ArtistControl, AccessControl {
             bidMoneyPool[bider][tokenId][i] = 0;
         }
         return balance;
+    }
+
+    /**
+    * @dev Allows creators to withdraw ETH from the royaltyPool
+    */
+    function withdrawRoyalty() public {
+        uint256 balance = royaltyPool[msg.sender];
+        require(balance > 0, "royality pool is empty");
+        royaltyPool[msg.sender] = 0;
+        payable(msg.sender).transfer(balance);
+    }
+
+    /**
+    * @dev Allows hashtune to withdraw ETH from the hashtuneFeePool
+    */
+    function withdrawHastuneFees() public onlyOwner {
+        uint256 balance = hashtuneFeePool;
+        require(balance > 0, "hashtune fee pool is empty");
+        hashtuneFeePool = 0;
+        hashtuneAddress.transfer(balance);
     }
 
     /**
